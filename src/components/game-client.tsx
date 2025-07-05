@@ -1,7 +1,7 @@
 'use client';
 
 import { gameShowHost } from '@/ai/flows/game-show-host';
-import { generateQuestion } from '@/ai/flows/generate-question-flow';
+import { generateQuiz } from '@/ai/flows/generate-quiz-flow';
 import { getAudiencePoll, type AudiencePollOutput } from '@/ai/flows/audience-poll-flow';
 import { getExpertsOpinion, type ExpertsOpinionOutput } from '@/ai/flows/experts-opinion-flow';
 import { auth } from '@/lib/firebase';
@@ -59,8 +59,7 @@ export default function GameClient() {
   const [password, setPassword] = useState('');
   const [authTab, setAuthTab] = useState<'login' | 'signup'>('signup');
 
-  const [askedQuestions, setAskedQuestions] = useState<string[]>([]);
-  const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
+  const [quizQuestions, setQuizQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [answerStatus, setAnswerStatus] = useState<AnswerStatus>('unanswered');
@@ -87,6 +86,8 @@ export default function GameClient() {
 
   const [isAiConfigured, setIsAiConfigured] = useState(true);
 
+  const currentQuestion = quizQuestions[currentQuestionIndex] ?? null;
+
   useEffect(() => {
     // This client-side check ensures we don't attempt to play without the necessary config.
     const keyIsPresent = !!process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
@@ -98,41 +99,35 @@ export default function GameClient() {
     setDisabledOptions([]);
   }
 
-  const fetchQuestion = useCallback(async (index: number) => {
-    setIsProcessing(true);
-    setCurrentQuestion(null);
-    setDisabledOptions([]);
-    try {
-      const newQuestion = await generateQuestion({
-        difficulty: index + 1,
-        previousQuestions: askedQuestions,
-      });
-      setAskedQuestions(prev => [...prev, newQuestion.question]);
-      setCurrentQuestion(newQuestion);
-      setCurrentQuestionIndex(index);
-      setSelectedAnswer(null);
-      setAnswerStatus('unanswered');
-      setHostResponse('');
-    } catch (error) {
-      console.error("Failed to fetch question:", error);
-      toast({
-        title: "Erro na Geração da Pergunta",
-        description: "Não foi possível conectar com nossa produção. Verifique sua chave de API do Google e tente recomeçar o jogo.",
-        variant: "destructive",
-      });
-      setGameState('game_over');
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [askedQuestions, toast]);
-
-  const startGame = useCallback(() => {
+  const startGame = useCallback(async () => {
     setGameState('playing');
-    setAskedQuestions([]);
+    setQuizQuestions([]);
     setCurrentQuestionIndex(0);
     resetLifelines();
-    fetchQuestion(0);
-  }, [fetchQuestion]);
+    setAnswerStatus('unanswered');
+    setSelectedAnswer(null);
+    setHostResponse('');
+    setIsProcessing(true);
+    setDisabledOptions([]);
+    try {
+        const newQuestions = await generateQuiz();
+        if (newQuestions.length !== TOTAL_QUESTIONS) {
+            console.error("Generated wrong number of questions:", newQuestions.length);
+            throw new Error("Failed to generate the correct number of questions.");
+        }
+        setQuizQuestions(newQuestions);
+    } catch (error) {
+        console.error("Failed to fetch quiz:", error);
+        toast({
+            title: "Erro na Geração do Quiz",
+            description: "Não foi possível criar as perguntas do quiz. Verifique sua chave de API do Google e tente recomeçar o jogo.",
+            variant: "destructive",
+        });
+        setGameState('game_over');
+    } finally {
+        setIsProcessing(false);
+    }
+  }, [toast]);
   
   const handleGuestStart = () => {
     if (isProcessing || !isAiConfigured) return;
@@ -267,8 +262,14 @@ export default function GameClient() {
         if (answerStatus === 'correct') {
             if (currentQuestionIndex === TOTAL_QUESTIONS - 1) {
                 setGameState('game_over');
+                setIsProcessing(false);
             } else {
-                fetchQuestion(currentQuestionIndex + 1);
+                setCurrentQuestionIndex(prev => prev + 1);
+                setSelectedAnswer(null);
+                setAnswerStatus('unanswered');
+                setHostResponse('');
+                setDisabledOptions([]);
+                setIsProcessing(false);
             }
         } else if (answerStatus === 'incorrect') {
             setGameState('game_over');
@@ -277,7 +278,7 @@ export default function GameClient() {
     }, 2500);
 
     return () => clearTimeout(timer);
-  }, [hostResponse, answerStatus, currentQuestionIndex, fetchQuestion]);
+  }, [hostResponse, answerStatus, currentQuestionIndex]);
 
 
   const handleAnswer = async (answerKey: string) => {
@@ -290,7 +291,6 @@ export default function GameClient() {
 
     const nextPrize = PRIZE_TIERS[currentQuestionIndex].amount;
     
-    // If the player is wrong, they win the prize of the last secure checkpoint.
     const lastCheckpointIndex = PRIZE_TIERS.slice(0, currentQuestionIndex)
         .map(p => p.isCheckpoint)
         .lastIndexOf(true);
@@ -312,8 +312,7 @@ export default function GameClient() {
     setEmail('');
     setPassword('');
     setAuthTab('signup');
-    setAskedQuestions([]);
-    setCurrentQuestion(null);
+    setQuizQuestions([]);
     setCurrentQuestionIndex(0);
     setSelectedAnswer(null);
     setAnswerStatus('unanswered');
@@ -323,9 +322,13 @@ export default function GameClient() {
   };
   
   const handleUseSkip = () => {
-    if (lifelines.skip > 0 && answerStatus === 'unanswered') {
+    if (lifelines.skip > 0 && answerStatus === 'unanswered' && currentQuestionIndex < TOTAL_QUESTIONS - 1) {
       setLifelines(prev => ({ ...prev, skip: prev.skip - 1 }));
-      fetchQuestion(currentQuestionIndex + 1);
+      setCurrentQuestionIndex(prev => prev + 1);
+      setSelectedAnswer(null);
+      setAnswerStatus('unanswered');
+      setHostResponse('');
+      setDisabledOptions([]);
     }
   };
 
@@ -421,11 +424,11 @@ export default function GameClient() {
     };
   
   const renderGameScreen = () => {
-     if (isProcessing && !currentQuestion && !hostResponse) {
+     if (isProcessing && quizQuestions.length === 0) {
         return (
            <div className="flex flex-col items-center justify-center gap-4 text-secondary h-96">
              <Loader2 className="h-16 w-16 animate-spin" />
-             <p className="text-2xl font-bold text-shadow-neon-yellow">Preparando a próxima pergunta...</p>
+             <p className="text-2xl font-bold text-shadow-neon-yellow">Gerando seu quiz exclusivo...</p>
            </div>
         );
       }
