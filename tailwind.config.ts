@@ -10,8 +10,6 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['PT Sans', 'sans-serif'],
-        headline: ['Playfair Display', 'serif'],
         code: ['monospace'],
       },
       colors: {
@@ -89,7 +87,7 @@ export default {
           },
         },
          'fade-in': {
-          '0%': { opacity: '0', transform: 'translateY(-10px)' },
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
       },
