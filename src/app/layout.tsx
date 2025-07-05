@@ -1,9 +1,9 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
-import { Inter } from 'next/font/google'
+import { Quicksand } from 'next/font/google'
 
-const inter = Inter({ subsets: ['latin'] })
+const quicksand = Quicksand({ subsets: ['latin'], weight: ['400', '500', '700'] })
 
 export const metadata: Metadata = {
   title: 'Quiz Milionário',
@@ -17,7 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={`${inter.className} antialiased`}>
+      <body className={`${quicksand.className} antialiased`}>
         {children}
         <Toaster />
       </body>

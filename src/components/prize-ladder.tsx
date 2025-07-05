@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import type { PrizeTier } from '@/lib/types';
-import { Star, Trophy } from 'lucide-react';
+import { Star, Trophy, Lock, Crown } from 'lucide-react';
 
 interface PrizeLadderProps {
   prizes: PrizeTier[];
@@ -10,10 +10,10 @@ interface PrizeLadderProps {
 
 export function PrizeLadder({ prizes, currentQuestionIndex }: PrizeLadderProps) {
   return (
-    <Card className="shadow-lg h-full bg-card/80 backdrop-blur-sm">
+    <Card className="shadow-lg h-full bg-card/70 backdrop-blur-sm border-2 border-accent/30">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 justify-center text-2xl text-primary-foreground">
-          <Trophy className="text-primary" />
+        <CardTitle className="flex items-center gap-2 justify-center text-2xl text-accent-foreground font-bold">
+          <Trophy className="text-accent" />
           Prêmios
         </CardTitle>
       </CardHeader>
@@ -26,12 +26,13 @@ export function PrizeLadder({ prizes, currentQuestionIndex }: PrizeLadderProps) 
               const questionNumber = prizes.length - 1 - index;
               const isCurrent = questionNumber === currentQuestionIndex;
               const isPast = questionNumber < currentQuestionIndex;
+              const isTopPrize = questionNumber === prizes.length - 1;
 
               return (
                 <li
                   key={prize.amount}
                   className={cn(
-                    'flex items-center justify-between p-2 rounded-md transition-all duration-300 text-sm',
+                    'flex items-center justify-between p-2 rounded-md transition-all duration-300 font-medium',
                     isCurrent && 'bg-primary text-primary-foreground scale-105 shadow-lg shadow-primary/50',
                     isPast && 'opacity-50',
                     prize.isCheckpoint && 'font-bold text-primary-foreground',
@@ -39,10 +40,21 @@ export function PrizeLadder({ prizes, currentQuestionIndex }: PrizeLadderProps) 
                   )}
                 >
                   <div className="flex items-center gap-3">
-                     {prize.isCheckpoint ? <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" /> : <span className="w-5 h-5" />}
+                     {isTopPrize ? (
+                        <Crown className="h-5 w-5 text-accent" />
+                      ) : prize.isCheckpoint ? (
+                        <Lock className="h-5 w-5 text-accent" />
+                      ) : (
+                        <Star className="h-5 w-5 text-accent/50" />
+                      )}
                     <span>{prizes.length - index}</span>
                   </div>
-                  <span>R$ {prize.label}</span>
+                  <div className="flex flex-col items-end leading-tight">
+                    <span>R$ {prize.label}</span>
+                     {prize.isCheckpoint && (
+                      <span className="text-xs font-normal opacity-90">Garantido 💖</span>
+                    )}
+                  </div>
                 </li>
               );
             })}

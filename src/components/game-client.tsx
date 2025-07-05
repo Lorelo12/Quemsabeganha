@@ -10,7 +10,7 @@ import { PRIZE_TIERS } from '@/lib/questions';
 import type { Question } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CornerDownLeft, Loader2, Lock, Sparkles, Trophy } from 'lucide-react';
+import { CornerDownLeft, Loader2, Lock, Sparkles, Trophy, Bot, User } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -60,7 +60,7 @@ export default function GameClient() {
 
   const handleStart = () => {
     setGameState('name_input');
-    addMessage({ role: 'host', content: "Bem-vindo(a) ao Quiz Milionário! 🍀 Para começar, por favor, insira seu nome." });
+    addMessage({ role: 'host', content: "Bem-vindo(a) ao Quiz Milionário! 🍀 Para começar, por favor, digite seu nome." });
   }
 
   const startGame = (name: string) => {
@@ -87,7 +87,7 @@ export default function GameClient() {
       const prevPrize = PRIZE_TIERS[index - 1];
 
       if (prevPrize?.isCheckpoint) {
-        addMessage({ role: 'system', content: <div className="flex items-center gap-2 font-bold text-primary"><Lock /> Checkpoint! Você garantiu R$ {prevPrize.label}.</div> });
+        addMessage({ role: 'system', content: <div className="flex items-center gap-2 font-bold text-primary-foreground"><Lock /> Checkpoint! Você garantiu R$ {prevPrize.label}.</div> });
       }
 
       addMessage({ role: 'host', content: <QuestionDisplay question={newQuestion} prize={prize.label} index={index} onAnswer={handleAnswer} /> });
@@ -141,7 +141,7 @@ export default function GameClient() {
       if (currentQuestionIndex === TOTAL_QUESTIONS - 1) {
         const finalPrize = PRIZE_TIERS[currentQuestionIndex].amount;
         setGameState('game_over');
-        addMessage({ role: 'host', content: `Parabéns, ${playerName}! Você zerou o Quiz Milionário e ganhou o prêmio máximo de R$ ${finalPrize.toLocaleString('pt-BR')},00 (fictícios)!` });
+        addMessage({ role: 'host', content: `Parabéns, ${playerName}! Você zerou o Quiz Milionário e ganhou o prêmio máximo de R$ ${finalPrize.toLocaleString('pt-BR')},00 (fictícios)! 👑` });
         addMessage({ role: 'system', content: <GameOverControls onRestart={restartGame} /> });
       } else {
         fetchQuestion(currentQuestionIndex + 1);
@@ -150,7 +150,7 @@ export default function GameClient() {
       const checkpointTier = [...PRIZE_TIERS].slice(0, currentQuestionIndex).reverse().find(p => p.isCheckpoint);
       const prizeWon = checkpointTier ? checkpointTier.amount : 0;
       setGameState('game_over');
-      addMessage({ role: 'host', content: `Que pena, ${playerName}! A resposta estava incorreta. Mas você leva para casa R$ ${prizeWon.toLocaleString('pt-BR')},00 (fictícios).` });
+      addMessage({ role: 'host', content: `Que pena, ${playerName}! A resposta estava incorreta. Mas você leva para casa R$ ${prizeWon.toLocaleString('pt-BR')},00 (fictícios) do seu prêmio garantido.` });
       addMessage({ role: 'system', content: <GameOverControls onRestart={restartGame} /> });
     }
   };
@@ -173,7 +173,7 @@ export default function GameClient() {
         <p className="max-w-xl text-lg text-foreground/80 my-8">
           Teste seus conhecimentos e veja se você pode chegar ao prêmio máximo de R$ 1 MILHÃO (fictício)!
         </p>
-        <Button onClick={handleStart} size="lg" className="animate-pulse-slow text-xl font-bold px-12 py-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/50">
+        <Button onClick={handleStart} size="lg" className="animate-pulse-slow text-xl font-bold px-12 py-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-accent/50 border-2 border-accent/20">
           Começar
         </Button>
         <p className="absolute bottom-4 text-xs text-muted-foreground z-10">*Este jogo é apenas para fins de entretenimento. Os valores são fictícios e não representam prêmios reais.</p>
@@ -183,9 +183,9 @@ export default function GameClient() {
 
   return (
     <div className="grid md:grid-cols-12 gap-6 w-full max-w-7xl mx-auto p-4 h-screen">
-      <Card className="md:col-span-8 lg:col-span-9 h-full flex flex-col bg-card/80 backdrop-blur-sm">
-        <header className="flex items-center justify-center p-4 border-b shrink-0">
-           <Trophy className="h-8 w-8 text-primary" />
+      <Card className="md:col-span-8 lg:col-span-9 h-full flex flex-col bg-card/80 backdrop-blur-sm border-2 border-primary/20">
+        <header className="flex items-center justify-center p-4 border-b shrink-0 border-primary/20">
+           <Trophy className="h-8 w-8 text-accent" />
            <h1 className="text-2xl font-bold ml-2 text-foreground">Quiz Milionário</h1>
         </header>
 
@@ -198,7 +198,7 @@ export default function GameClient() {
           )}
         </div>
 
-        <footer className="p-4 border-t bg-card/90 backdrop-blur-sm shrink-0">
+        <footer className="p-4 border-t bg-card/90 backdrop-blur-sm shrink-0 border-primary/20">
           {gameState === 'name_input' && !isProcessing && (
             <Form {...form}>
               <form onSubmit={form.handleSubmit(data => startGame(data.name))} className="flex items-start gap-2">
@@ -240,14 +240,15 @@ const ChatMessage = ({ role, content }: Message) => {
 
   return (
     <div className={cn('flex items-end gap-2 animate-fade-in', { 'justify-start': isHost, 'justify-end': isPlayer, 'justify-center': isSystem })}>
-      {isHost && <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground shrink-0"><Sparkles size={20} /></div>}
-      <div className={cn('max-w-md md:max-w-lg lg:max-w-xl rounded-lg p-3 text-sm md:text-base shadow-lg', {
-        'bg-accent/30 text-accent-foreground rounded-bl-none border border-accent/50': isHost,
-        'bg-secondary text-secondary-foreground rounded-br-none': isPlayer,
+      {isHost && <div className="w-8 h-8 rounded-full bg-accent/80 flex items-center justify-center text-accent-foreground shrink-0"><Bot size={20} /></div>}
+      <div className={cn('max-w-md md:max-w-lg lg:max-w-xl rounded-lg p-3 text-sm md:text-base shadow-md', {
+        'bg-accent/20 text-accent-foreground rounded-bl-none border border-accent/30': isHost,
+        'bg-primary/30 text-primary-foreground rounded-br-none border border-primary/50': isPlayer,
         'bg-transparent text-muted-foreground text-xs italic shadow-none': isSystem,
       })}>
         {content}
       </div>
+       {isPlayer && <div className="w-8 h-8 rounded-full bg-primary/80 flex items-center justify-center text-primary-foreground shrink-0"><User size={20} /></div>}
     </div>
   );
 };
@@ -262,8 +263,8 @@ const QuestionDisplay = ({ question, prize, index, onAnswer }: { question: Quest
       <p className="text-lg">{question.question}</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {Object.entries(question.options).map(([key, value]) => (
-          <Button key={key} variant="outline" className="justify-start h-auto p-3 whitespace-normal text-left bg-card hover:bg-muted disabled:opacity-100" onClick={() => handleSelect(key, value)} disabled={answered}>
-            <span className="font-bold mr-2 text-primary">{key}:</span> {value}
+          <Button key={key} variant="outline" className="justify-start h-auto p-3 whitespace-normal text-left bg-card hover:bg-primary/20 border-primary/40 disabled:opacity-100" onClick={() => handleSelect(key, value)} disabled={answered}>
+            <span className="font-bold mr-2 text-primary-foreground">{key}:</span> {value}
           </Button>
         ))}
       </div>
@@ -273,6 +274,6 @@ const QuestionDisplay = ({ question, prize, index, onAnswer }: { question: Quest
 
 const GameOverControls = ({ onRestart }: { onRestart: () => void }) => (
   <div className="flex justify-center w-full">
-    <Button onClick={onRestart}>Recomeçar</Button>
+    <Button onClick={onRestart}>Recomeçar 💖</Button>
   </div>
 );
