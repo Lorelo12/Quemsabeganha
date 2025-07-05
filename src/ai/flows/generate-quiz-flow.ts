@@ -17,8 +17,12 @@ export type GenerateQuizOutput = z.infer<typeof GenerateQuizOutputSchema>;
 
 
 export async function generateQuiz(): Promise<Question[]> {
-  const { output } = await generateQuizFlow();
-  return output?.questions || [];
+  const output = await generateQuizFlow();
+  if (!output?.questions) {
+    console.error('Failed to generate quiz questions. The AI returned an empty or invalid response.');
+    return [];
+  }
+  return output.questions;
 }
 
 const prompt = ai.definePrompt({
@@ -35,15 +39,12 @@ Gerar 16 perguntas de múltipla escolha com 4 alternativas (A, B, C, D) e apenas
 2.  **Aleatoriedade e Variedade MÁXIMA:**
     *   **Temas Diversificados:** Varie os temas entre as perguntas: história, geografia, ciências, cultura pop, artes, esportes, etc. Não foque em apenas uma área.
     *   **Sempre Original:** As perguntas devem ser diferentes e não clichês.
-3.  **Resposta Única e Incontestável:**
-    *   Para cada pergunta, apenas UMA opção pode ser a correta.
-    *   As outras três opções (distratores) devem ser incorretas, mas plausíveis o suficiente para criar dúvida.
-    *   Evite ambiguidades ou perguntas com múltiplas interpretações.
-4.  **Qualidade do Conteúdo:**
-    *   **Evite perguntas datadas:** Não use perguntas que dependam do tempo (Ex: "Quem é o atual presidente...?").
-    *   **Evite regionalismos extremos:** As perguntas devem ser compreensíveis para um público de língua portuguesa em geral.
+3.  **Formato de Saída OBRIGATÓRIO:**
+    *   A saída DEVE ser um objeto JSON.
+    *   O objeto principal deve ter uma chave "questions", que é um array de 16 objetos de pergunta.
+    *   Cada objeto de pergunta deve ter EXATAMENTE as seguintes chaves: "question" (string), "options" (um objeto com chaves "A", "B", "C", "D"), e "correctAnswerKey" (uma string que seja "A", "B", "C", ou "D").
 
-Gere o conjunto completo de 16 perguntas agora.`,
+Gere o conjunto completo de 16 perguntas agora, seguindo estritamente o formato JSON especificado.`,
 });
 
 const generateQuizFlow = ai.defineFlow(
@@ -60,6 +61,9 @@ const generateQuizFlow = ai.defineFlow(
     },
     async () => {
         const { output } = await prompt();
-        return output!;
+        if (!output) {
+          throw new Error('AI returned no output.');
+        }
+        return output;
     }
 );
