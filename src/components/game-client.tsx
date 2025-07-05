@@ -11,6 +11,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Label } from "@/components/ui/label"
+
 
 import { useToast } from '@/hooks/use-toast';
 import { PRIZE_TIERS } from '@/lib/questions';
@@ -19,10 +22,10 @@ import { cn } from '@/lib/utils';
 import { Loader2, Crown, Layers, Users, GraduationCap, SkipForward, CircleDollarSign, Gem, BarChart2, Lightbulb, Info, Trophy, MessageSquarePlus } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { Logo } from './logo';
-import { Card } from './ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { PrizeTable } from './prize-table';
 
-type GameState = 'name_input' | 'playing' | 'game_over';
+type GameState = 'auth' | 'playing' | 'game_over';
 type AnswerStatus = 'unanswered' | 'correct' | 'incorrect';
 type InfoDialog = 'ranking' | 'ajuda' | 'creditos' | 'feedback';
 
@@ -37,8 +40,12 @@ const answerButtonColors: { [key: string]: { gradient: string } } = {
 
 
 export default function GameClient() {
-  const [gameState, setGameState] = useState<GameState>('name_input');
+  const [gameState, setGameState] = useState<GameState>('auth');
   const [playerName, setPlayerName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authTab, setAuthTab] = useState<'login' | 'signup'>('signup');
+
   const [askedQuestions, setAskedQuestions] = useState<string[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -104,15 +111,37 @@ export default function GameClient() {
   
   const handleStartGame = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!playerName.trim()) {
+    if (authTab === 'signup') {
+      if (!playerName.trim()) {
         toast({
-            title: "Nome é obrigatório",
-            description: "Por favor, digite seu nome para começar.",
-            variant: "destructive",
+          title: "Apelido é obrigatório",
+          description: "Por favor, digite seu apelido para o ranking.",
+          variant: "destructive",
         });
         return;
+      }
+    } else { // authTab === 'login'
+      if (!email || !password) {
+        toast({
+          title: "Campos obrigatórios",
+          description: "Por favor, digite seu e-mail e senha.",
+          variant: "destructive",
+        });
+        return;
+      }
+      // This is a mocked login. In a real app, you would validate credentials
+      // and fetch user data from a database.
+      setPlayerName("Jogador(a)");
+      toast({
+          title: "Login realizado com sucesso!",
+          description: "Bem-vindo(a) de volta!",
+      });
     }
-    startGame();
+    
+    // Using a short timeout to ensure the state updates before starting the game
+    setTimeout(() => {
+        startGame();
+    }, 100);
   };
 
   useEffect(() => {
@@ -161,8 +190,11 @@ export default function GameClient() {
   };
 
   const restartGame = () => {
-    setGameState('name_input');
+    setGameState('auth');
     setPlayerName('');
+    setEmail('');
+    setPassword('');
+    setAuthTab('signup');
     setAskedQuestions([]);
     setCurrentQuestion(null);
     setCurrentQuestionIndex(0);
@@ -331,7 +363,7 @@ export default function GameClient() {
 
   const renderContent = () => {
     switch(gameState) {
-      case 'name_input':
+      case 'auth':
         return (
            <div className="flex flex-col items-center justify-center text-center w-full max-w-4xl p-4 gap-8 animate-fade-in">
             <Logo />
@@ -339,22 +371,52 @@ export default function GameClient() {
               O clássico Show do Milhão brasileiro com elegância!<br/>Responda 16 perguntas e ganhe R$ 1.000.000!
             </p>
             
-            <form onSubmit={handleStartGame} className="w-full max-w-sm flex flex-col items-center gap-4">
-              <Input 
-                type="text"
-                placeholder="Digite seu nome para o ranking"
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
-                className="h-auto bg-black/30 border-primary/50 p-4 text-center text-lg"
-                required
-              />
-              <Button type="submit" size="lg" className="text-2xl font-bold px-12 py-8 rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-lg shadow-secondary/50 border-2 border-white/30 animate-pulse-slow w-full">
-                <Gem className="mr-4 h-8 w-8 text-accent"/>
-                COMEÇAR O JOGO
-              </Button>
-            </form>
-
-            <PrizeTable />
+            <Card className="w-full max-w-sm bg-black/30 border-primary/50 p-6">
+                <Tabs value={authTab} onValueChange={(value) => setAuthTab(value as any)} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 bg-muted/50">
+                        <TabsTrigger value="signup">Criar Conta</TabsTrigger>
+                        <TabsTrigger value="login">Login</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="signup">
+                       <CardHeader className="p-0 pt-6 mb-4">
+                           <CardTitle className="text-2xl">Crie sua Conta</CardTitle>
+                           <CardDescription>Crie seu apelido único para entrar no ranking!</CardDescription>
+                       </CardHeader>
+                        <form onSubmit={handleStartGame} className="space-y-4">
+                            <div className="space-y-2 text-left">
+                                <Label htmlFor="nickname" className="text-white/80">Apelido</Label>
+                                <Input id="nickname" placeholder="Seu nome no jogo" value={playerName} onChange={(e) => setPlayerName(e.target.value)} required className="bg-black/30"/>
+                            </div>
+                             <div className="space-y-2 text-left">
+                                <Label htmlFor="email-signup" className="text-white/80">Email</Label>
+                                <Input id="email-signup" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="bg-black/30"/>
+                            </div>
+                             <div className="space-y-2 text-left">
+                                <Label htmlFor="password-signup" className="text-white/80">Senha</Label>
+                                <Input id="password-signup" type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} required className="bg-black/30"/>
+                            </div>
+                            <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg"><Gem className="mr-2"/>Criar e Jogar</Button>
+                        </form>
+                    </TabsContent>
+                    <TabsContent value="login">
+                        <CardHeader className="p-0 pt-6 mb-4">
+                           <CardTitle className="text-2xl">Bem-vindo(a) de volta!</CardTitle>
+                           <CardDescription>Faça login para continuar sua jornada.</CardDescription>
+                       </CardHeader>
+                         <form onSubmit={handleStartGame} className="space-y-4">
+                             <div className="space-y-2 text-left">
+                                <Label htmlFor="email-login" className="text-white/80">Email</Label>
+                                <Input id="email-login" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="bg-black/30"/>
+                            </div>
+                             <div className="space-y-2 text-left">
+                                <Label htmlFor="password-login" className="text-white/80">Senha</Label>
+                                <Input id="password-login" type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} required className="bg-black/30"/>
+                            </div>
+                            <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg">Entrar e Jogar</Button>
+                        </form>
+                    </TabsContent>
+                </Tabs>
+            </Card>
 
             <div className="flex flex-wrap justify-center gap-4 mt-4">
                 <Button variant="ghost" className="text-secondary/80 hover:text-secondary" onClick={() => setInfoDialog('ranking')}>
