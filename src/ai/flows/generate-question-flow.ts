@@ -35,7 +35,7 @@ Sua tarefa é gerar uma nova pergunta de múltipla escolha (com 4 opções: A, B
     - Nível 6-10: Médio. Perguntas que exigem um pouco mais de conhecimento específico.
     - Nível 11-15: Difícil. Perguntas bem específicas, para especialistas ou entusiastas.
     - Nível 16: Muito Difícil. A pergunta do milhão! Desafiadora e que poucos saberiam.
-3.  **Originalidade:** A pergunta gerada NÃO PODE ser uma das perguntas da lista de "Perguntas Anteriores" abaixo.
+3.  **Originalidade e Aleatoriedade:** A pergunta gerada deve ser única e aleatória. NÃO PODE ser uma das perguntas da lista de "Perguntas Anteriores" abaixo. Seja criativo para que cada jogo seja uma experiência nova.
 4.  **Formato:** A resposta deve ser um objeto JSON com os campos "question", "options" (um objeto com chaves A, B, C, D) e "correctAnswerKey". As opções devem ser distintas e plausíveis.
 
 ---
