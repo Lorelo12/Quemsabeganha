@@ -158,6 +158,17 @@ export default function GameClient() {
       } catch (error: any) {
         console.error("Firebase signup error:", error);
         const errorCode = error.code;
+        if (errorCode === 'auth/configuration-not-found') {
+            toast({ 
+                title: "Login Desabilitado", 
+                description: "A configuração do Firebase está incorreta. Iniciando o jogo como convidado.", 
+                variant: "destructive" 
+            });
+            setPlayerName('Convidado');
+            startGame();
+            return;
+        }
+
         let friendlyMessage = "Ocorreu um erro ao criar a conta. Verifique suas credenciais e a conexão com a internet.";
         if (errorCode === 'auth/email-already-in-use') {
           friendlyMessage = "Este e-mail já está em uso. Tente fazer login.";
@@ -165,8 +176,6 @@ export default function GameClient() {
           friendlyMessage = "A senha é muito fraca. Tente uma com pelo menos 6 caracteres.";
         } else if (errorCode === 'auth/operation-not-allowed') {
             friendlyMessage = "Cadastro por Email/Senha não está ativado. Habilite-o no seu Console do Firebase em Autenticação > Métodos de login.";
-        } else if (errorCode === 'auth/configuration-not-found') {
-            friendlyMessage = "Falha na configuração do Firebase. Verifique se as chaves em seu arquivo .env estão corretas e correspondem ao seu projeto.";
         }
         toast({ title: "Erro no Cadastro", description: friendlyMessage, variant: "destructive" });
       } finally {
@@ -186,11 +195,21 @@ export default function GameClient() {
       } catch (error: any) {
         console.error("Firebase login error:", error);
         const errorCode = error.code;
+        
+        if (errorCode === 'auth/configuration-not-found') {
+            toast({ 
+                title: "Login Desabilitado", 
+                description: "A configuração do Firebase está incorreta. Iniciando o jogo como convidado.", 
+                variant: "destructive" 
+            });
+            setPlayerName('Convidado');
+            startGame();
+            return;
+        }
+        
         let friendlyMessage = "Ocorreu um erro ao fazer login. Verifique suas credenciais e a conexão.";
         if (errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password' || errorCode === 'auth/invalid-credential') {
             friendlyMessage = "Email ou senha incorretos.";
-        } else if (errorCode === 'auth/configuration-not-found') {
-            friendlyMessage = "Falha na configuração do Firebase. Verifique se as chaves em seu arquivo .env estão corretas.";
         }
         toast({ title: "Erro no Login", description: friendlyMessage, variant: "destructive" });
       } finally {
@@ -241,13 +260,10 @@ export default function GameClient() {
     const isWinner = !gaveUp && answerStatus === 'correct' && currentQuestionIndex === TOTAL_QUESTIONS - 1;
 
     if (isWinner) {
-      // User answered the last question correctly and won the grand prize.
       finalPrize = PRIZE_TIERS[TOTAL_QUESTIONS - 1].amount;
     } else if (gaveUp) {
-      // User decided to give up. They get the prize from the last correctly answered question.
       finalPrize = currentQuestionIndex > 0 ? PRIZE_TIERS[currentQuestionIndex - 1].amount : 0;
     } else if (answerStatus === 'incorrect') {
-      // User answered incorrectly. They get the prize from the last safe checkpoint.
       const lastCheckpointIndex = PRIZE_TIERS.slice(0, currentQuestionIndex)
         .map(p => p.isCheckpoint)
         .lastIndexOf(true);
