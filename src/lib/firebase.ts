@@ -12,30 +12,34 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
-export const isFirebaseConfigured = !!(
+
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let isFirebaseConfigured = false;
+
+// Check that all required Firebase environment variables are set before initializing
+const hasAllKeys = !!(
   firebaseConfig.apiKey &&
   firebaseConfig.authDomain &&
   firebaseConfig.projectId
 );
 
-// Initialize Firebase
-let app: FirebaseApp | null = null;
-let auth: Auth | null = null;
 
-// Check that all required Firebase environment variables are set before initializing
-if (isFirebaseConfigured) {
+if (hasAllKeys) {
   try {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
+    // IMPORTANT: Only set configured to true if initialization succeeds.
+    isFirebaseConfigured = true;
   } catch (error) {
-    console.error("Error initializing Firebase:", error);
-    console.warn("Please check that your Firebase credentials in the .env file are valid.");
+    console.warn("Firebase initialization failed. Please check your .env file credentials. The app will proceed in guest mode.", error);
     app = null;
     auth = null;
+    isFirebaseConfigured = false;
   }
 } else {
     // The game client will show a user-friendly alert if Firebase isn't configured.
     // No need for a console warning here that might confuse the user.
 }
 
-export { app, auth };
+export { app, auth, isFirebaseConfigured };

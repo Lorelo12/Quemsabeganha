@@ -156,28 +156,19 @@ export default function GameClient() {
           startGame();
         }
       } catch (error: any) {
-        console.error("Firebase signup error:", error);
         const errorCode = error.code;
-
-        if (errorCode === 'auth/configuration-not-found') {
-            toast({ 
-                title: "Cadastro Desabilitado", 
-                description: "A configuração do Firebase está incorreta. Iniciando o jogo como convidado.", 
-                variant: "destructive" 
-            });
-            setPlayerName('Convidado');
-            startGame();
-            return;
-        }
-
         let friendlyMessage = "Ocorreu um erro ao criar a conta. Verifique suas credenciais e a conexão com a internet.";
+        
         if (errorCode === 'auth/email-already-in-use') {
           friendlyMessage = "Este e-mail já está em uso. Tente fazer login.";
         } else if (errorCode === 'auth/weak-password') {
           friendlyMessage = "A senha é muito fraca. Tente uma com pelo menos 6 caracteres.";
         } else if (errorCode === 'auth/operation-not-allowed') {
             friendlyMessage = "Cadastro por Email/Senha não está ativado. Habilite-o no seu Console do Firebase em Autenticação > Métodos de login.";
+        } else if (errorCode === 'auth/configuration-not-found') {
+            friendlyMessage = "Falha na configuração do Firebase. A chave de API (apiKey) no arquivo .env parece estar incorreta. Verifique a chave no seu console do Firebase e tente novamente.";
         }
+        
         toast({ title: "Erro no Cadastro", description: friendlyMessage, variant: "destructive" });
       } finally {
         setIsProcessing(false);
@@ -194,24 +185,15 @@ export default function GameClient() {
         toast({ title: "Login realizado com sucesso!", description: "Bem-vindo(a) de volta!" });
         startGame();
       } catch (error: any) {
-        console.error("Firebase login error:", error);
         const errorCode = error.code;
-        
-        if (errorCode === 'auth/configuration-not-found') {
-            toast({ 
-                title: "Login Desabilitado", 
-                description: "A configuração do Firebase está incorreta. Iniciando o jogo como convidado.", 
-                variant: "destructive" 
-            });
-            setPlayerName('Convidado');
-            startGame();
-            return;
-        }
         
         let friendlyMessage = "Ocorreu um erro ao fazer login. Verifique suas credenciais e a conexão.";
         if (errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password' || errorCode === 'auth/invalid-credential') {
             friendlyMessage = "Email ou senha incorretos.";
+        } else if (errorCode === 'auth/configuration-not-found') {
+            friendlyMessage = "Falha na configuração do Firebase. Verifique se as chaves em seu arquivo .env estão corretas.";
         }
+
         toast({ title: "Erro no Login", description: friendlyMessage, variant: "destructive" });
       } finally {
         setIsProcessing(false);
