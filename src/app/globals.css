@@ -4,14 +4,14 @@
 
 @layer base {
   :root {
-    --background: 343 83% 96%; /* Rosé Champagne */
+    --background: 276 67% 97%; /* Lilás Suave */
     --foreground: 255 20% 30%;
-    --card: 343 83% 97%;
+    --card: 0 0% 100%;
     --card-foreground: 255 20% 30%;
     --popover: 0 0% 100%;
     --popover-foreground: 255 20% 30%;
-    --primary: 255 68% 85%; /* Lavanda Digital */
-    --primary-foreground: 255 40% 25%;
+    --primary: 348 83% 96%; /* Rosé Champagne */
+    --primary-foreground: 345 40% 25%;
     --secondary: 211 75% 83%; /* Serenity Blue */
     --secondary-foreground: 211 40% 25%;
     --muted: 343 60% 94%;
@@ -20,6 +20,7 @@
     --accent-foreground: 51 60% 15%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
+    --success: 140 60% 45%;
     --border: 51 100% 85%; /* Soft Gold */
     --input: 343 60% 92%;
     --ring: 255 68% 85%; /* Lavanda Digital */
@@ -47,7 +48,7 @@
   body {
     @apply bg-background text-foreground;
     background-color: hsl(var(--background));
-    background-image: linear-gradient(180deg, hsl(343, 83%, 96%) 0%, hsl(267, 73%, 96%) 100%);
+    background-image: linear-gradient(180deg, hsl(276, 67%, 97%) 0%, hsl(348, 83%, 96%) 100%);
   }
 }
 
