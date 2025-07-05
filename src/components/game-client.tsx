@@ -21,6 +21,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 
 
 import { useToast } from '@/hooks/use-toast';
@@ -534,9 +535,25 @@ export default function GameClient() {
                     </Button>
                     <div className="mt-4 text-center text-sm text-white/70">
                         <p>Para seu nome aparecer no ranking...</p>
-                        <Button variant="link" className="text-secondary p-0 h-auto text-sm" onClick={() => setAuthView('login')}>
-                            Crie uma conta ou faça login &rarr;
-                        </Button>
+                         <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="inline-block"> {/* Wrapper div for disabled button tooltip */}
+                                    <Button
+                                        variant="link"
+                                        className="text-secondary p-0 h-auto text-sm"
+                                        onClick={() => setAuthView('login')}
+                                        disabled={!auth}
+                                    >
+                                        Crie uma conta ou faça login &rarr;
+                                    </Button>
+                                </div>
+                            </TooltipTrigger>
+                            {!auth && (
+                                <TooltipContent>
+                                    <p>Configure o Firebase no .env para habilitar o login.</p>
+                                </TooltipContent>
+                            )}
+                        </Tooltip>
                     </div>
                 </>
                 ) : (
@@ -599,9 +616,25 @@ export default function GameClient() {
             </Card>
 
             <div className="flex flex-wrap justify-center gap-4 mt-4">
-                <Button variant="ghost" className="text-secondary/80 hover:text-secondary" onClick={() => { setInfoDialog('ranking'); fetchLeaderboard(); }}>
-                    <BarChart2 className="mr-2"/> Ranking
-                </Button>
+                 <Tooltip>
+                    <TooltipTrigger asChild>
+                        <div className="inline-block">
+                            <Button
+                                variant="ghost"
+                                className="text-secondary/80 hover:text-secondary"
+                                onClick={() => { setInfoDialog('ranking'); fetchLeaderboard(); }}
+                                disabled={!supabase}
+                            >
+                                <BarChart2 className="mr-2"/> Ranking
+                            </Button>
+                        </div>
+                    </TooltipTrigger>
+                    {!supabase && (
+                        <TooltipContent>
+                            <p>Configure o Supabase no .env para habilitar o ranking.</p>
+                        </TooltipContent>
+                    )}
+                </Tooltip>
                 <Button variant="ghost" className="text-secondary/80 hover:text-secondary" onClick={() => setInfoDialog('ajuda')}>
                     <Lightbulb className="mr-2"/> Ajuda
                 </Button>
@@ -646,7 +679,7 @@ export default function GameClient() {
   }
 
   return (
-    <>
+    <TooltipProvider>
       <div className="w-full max-w-4xl mx-auto p-4 md:p-6 rounded-3xl bg-black/30 relative">
         {auth?.currentUser && (
             <Button onClick={handleLogout} variant="ghost" className="absolute top-6 right-6 text-secondary z-20 hover:bg-primary/20 hover:text-secondary" disabled={isProcessing}>
@@ -827,6 +860,6 @@ export default function GameClient() {
           </DialogHeader>
         </DialogContent>
       </Dialog>
-    </>
+    </TooltipProvider>
   );
 }

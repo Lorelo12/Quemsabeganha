@@ -32,7 +32,8 @@ if (
     auth = null;
   }
 } else {
-    console.warn("Firebase configuration is incomplete. Authentication features will be disabled.");
+    // The game client will show a user-friendly tooltip if Firebase isn't configured.
+    // No need for a console warning here that might confuse the user.
 }
 
 export { app, auth };
