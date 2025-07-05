@@ -34,6 +34,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/
 import { PrizeTable } from './prize-table';
 
 type GameState = 'auth' | 'playing' | 'game_over';
+type AuthView = 'guest' | 'login';
 type AnswerStatus = 'unanswered' | 'correct' | 'incorrect';
 type InfoDialog = 'ranking' | 'ajuda' | 'creditos' | 'feedback';
 type LeaderboardEntry = { player_name: string; score: number };
@@ -50,6 +51,7 @@ const answerButtonColors: { [key: string]: { gradient: string } } = {
 
 export default function GameClient() {
   const [gameState, setGameState] = useState<GameState>('auth');
+  const [authView, setAuthView] = useState<AuthView>('guest');
   const [playerName, setPlayerName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -122,6 +124,21 @@ export default function GameClient() {
     fetchQuestion(0);
   }, [fetchQuestion]);
   
+  const handleGuestStart = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isProcessing) return;
+
+    if (!playerName.trim()) {
+      toast({
+        title: 'Apelido Obrigatório',
+        description: 'Por favor, insira um apelido para jogar.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    startGame();
+  };
+
   const handleStartGame = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isProcessing) return;
@@ -289,6 +306,7 @@ export default function GameClient() {
 
   const restartGame = () => {
     setGameState('auth');
+    setAuthView('guest');
     setPlayerName('');
     setEmail('');
     setPassword('');
@@ -496,54 +514,85 @@ export default function GameClient() {
             </p>
             
             <Card className="w-full max-w-sm bg-black/30 border-primary/50 p-6">
-                <Tabs value={authTab} onValueChange={(value) => setAuthTab(value as any)} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 bg-muted/50">
-                        <TabsTrigger value="signup">Criar Conta</TabsTrigger>
-                        <TabsTrigger value="login">Login</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="signup">
-                       <CardHeader className="p-0 pt-6 mb-4">
-                           <CardTitle className="text-2xl">Crie sua Conta</CardTitle>
-                           <CardDescription>Crie seu apelido único para entrar no ranking!</CardDescription>
-                       </CardHeader>
-                        <form onSubmit={handleStartGame} className="space-y-4">
-                            <div className="space-y-2 text-left">
-                                <Label htmlFor="nickname" className="text-white/80">Apelido</Label>
-                                <Input id="nickname" placeholder="Seu nome no jogo" value={playerName} onChange={(e) => setPlayerName(e.target.value)} required className="bg-black/30"/>
-                            </div>
-                             <div className="space-y-2 text-left">
-                                <Label htmlFor="email-signup" className="text-white/80">Email</Label>
-                                <Input id="email-signup" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="bg-black/30"/>
-                            </div>
-                             <div className="space-y-2 text-left">
-                                <Label htmlFor="password-signup" className="text-white/80">Senha</Label>
-                                <Input id="password-signup" type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} required className="bg-black/30"/>
-                            </div>
-                            <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg" disabled={isProcessing}>
-                                {isProcessing ? <Loader2 className="animate-spin" /> : <><Gem className="mr-2"/>Criar e Jogar</>}
-                            </Button>
-                        </form>
-                    </TabsContent>
-                    <TabsContent value="login">
+                {authView === 'guest' ? (
+                <>
+                    <CardHeader className="p-0 pt-6 mb-4">
+                        <CardTitle className="text-2xl">Jogar Agora</CardTitle>
+                        <CardDescription>Insira um apelido para começar.</CardDescription>
+                    </CardHeader>
+                    <form onSubmit={handleGuestStart} className="space-y-4">
+                        <div className="space-y-2 text-left">
+                            <Label htmlFor="nickname-guest" className="text-white/80">Apelido</Label>
+                            <Input id="nickname-guest" placeholder="Seu nome no jogo" value={playerName} onChange={(e) => setPlayerName(e.target.value)} required className="bg-black/30"/>
+                        </div>
+                        <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg" disabled={isProcessing}>
+                            {isProcessing ? <Loader2 className="animate-spin" /> : "Jogar"}
+                        </Button>
+                    </form>
+                    <div className="mt-4 text-center text-sm text-white/70">
+                        <p>Para salvar sua pontuação no ranking...</p>
+                        <Button variant="link" className="text-secondary p-0 h-auto text-sm" onClick={() => setAuthView('login')}>
+                            Crie uma conta ou faça login &rarr;
+                        </Button>
+                    </div>
+                </>
+                ) : (
+                <>
+                    <Tabs value={authTab} onValueChange={(value) => setAuthTab(value as any)} className="w-full">
+                        <TabsList className="grid w-full grid-cols-2 bg-muted/50">
+                            <TabsTrigger value="signup">Criar Conta</TabsTrigger>
+                            <TabsTrigger value="login">Login</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="signup">
                         <CardHeader className="p-0 pt-6 mb-4">
-                           <CardTitle className="text-2xl">Bem-vindo(a) de volta!</CardTitle>
-                           <CardDescription>Faça login para continuar sua jornada.</CardDescription>
-                       </CardHeader>
-                         <form onSubmit={handleStartGame} className="space-y-4">
-                             <div className="space-y-2 text-left">
-                                <Label htmlFor="email-login" className="text-white/80">Email</Label>
-                                <Input id="email-login" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="bg-black/30"/>
-                            </div>
-                             <div className="space-y-2 text-left">
-                                <Label htmlFor="password-login" className="text-white/80">Senha</Label>
-                                <Input id="password-login" type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} required className="bg-black/30"/>
-                            </div>
-                            <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg" disabled={isProcessing}>
-                                {isProcessing ? <Loader2 className="animate-spin" /> : "Entrar e Jogar"}
-                            </Button>
-                        </form>
-                    </TabsContent>
-                </Tabs>
+                            <CardTitle className="text-2xl">Crie sua Conta</CardTitle>
+                            <CardDescription>Crie seu apelido único para entrar no ranking!</CardDescription>
+                        </CardHeader>
+                            <form onSubmit={handleStartGame} className="space-y-4">
+                                <div className="space-y-2 text-left">
+                                    <Label htmlFor="nickname" className="text-white/80">Apelido</Label>
+                                    <Input id="nickname" placeholder="Seu nome no jogo" value={playerName} onChange={(e) => setPlayerName(e.target.value)} required className="bg-black/30"/>
+                                </div>
+                                <div className="space-y-2 text-left">
+                                    <Label htmlFor="email-signup" className="text-white/80">Email</Label>
+                                    <Input id="email-signup" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="bg-black/30"/>
+                                </div>
+                                <div className="space-y-2 text-left">
+                                    <Label htmlFor="password-signup" className="text-white/80">Senha</Label>
+                                    <Input id="password-signup" type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} required className="bg-black/30"/>
+                                </div>
+                                <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg" disabled={isProcessing}>
+                                    {isProcessing ? <Loader2 className="animate-spin" /> : <><Gem className="mr-2"/>Criar e Jogar</>}
+                                </Button>
+                            </form>
+                        </TabsContent>
+                        <TabsContent value="login">
+                            <CardHeader className="p-0 pt-6 mb-4">
+                            <CardTitle className="text-2xl">Bem-vindo(a) de volta!</CardTitle>
+                            <CardDescription>Faça login para continuar sua jornada.</CardDescription>
+                        </CardHeader>
+                            <form onSubmit={handleStartGame} className="space-y-4">
+                                <div className="space-y-2 text-left">
+                                    <Label htmlFor="email-login" className="text-white/80">Email</Label>
+                                    <Input id="email-login" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="bg-black/30"/>
+                                </div>
+                                <div className="space-y-2 text-left">
+                                    <Label htmlFor="password-login" className="text-white/80">Senha</Label>
+                                    <Input id="password-login" type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} required className="bg-black/30"/>
+                                </div>
+                                <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg" disabled={isProcessing}>
+                                    {isProcessing ? <Loader2 className="animate-spin" /> : "Entrar e Jogar"}
+                                </Button>
+                            </form>
+                        </TabsContent>
+                    </Tabs>
+                    <div className="mt-4 text-center">
+                        <Button variant="link" className="text-secondary p-0 h-auto" onClick={() => setAuthView('guest')}>
+                            &larr; Voltar para jogar como convidado
+                        </Button>
+                    </div>
+                </>
+                )}
             </Card>
 
             <div className="flex flex-wrap justify-center gap-4 mt-4">
