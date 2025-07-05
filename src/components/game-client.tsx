@@ -22,13 +22,14 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
 import { useToast } from '@/hooks/use-toast';
 import { PRIZE_TIERS } from '@/lib/questions';
 import type { Question, LifelineState } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Loader2, Crown, Layers, Users, GraduationCap, SkipForward, CircleDollarSign, Gem, BarChart2, Lightbulb, Info, Trophy, MessageSquarePlus } from 'lucide-react';
+import { Loader2, Crown, Layers, Users, GraduationCap, SkipForward, CircleDollarSign, Gem, BarChart2, Lightbulb, Info, Trophy, MessageSquarePlus, AlertTriangle } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { Logo } from './logo';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
@@ -83,6 +84,14 @@ export default function GameClient() {
   
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[] | null>(null);
   const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
+
+  const [isAiConfigured, setIsAiConfigured] = useState(true);
+
+  useEffect(() => {
+    // This client-side check ensures we don't attempt to play without the necessary config.
+    const keyIsPresent = !!process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
+    setIsAiConfigured(keyIsPresent);
+  }, []);
   
   const resetLifelines = () => {
     setLifelines({ skip: 3, cards: true, audience: true, experts: true });
@@ -126,32 +135,13 @@ export default function GameClient() {
   }, [fetchQuestion]);
   
   const handleGuestStart = () => {
-    if (isProcessing) return;
-    if (!process.env.NEXT_PUBLIC_GOOGLE_API_KEY) {
-        toast({
-            title: "Configuração da IA Incompleta",
-            description: "A chave da API do Google está faltando. Adicione-a ao seu arquivo .env para o jogo funcionar.",
-            variant: "destructive",
-            duration: 9000,
-        });
-        return;
-    }
+    if (isProcessing || !isAiConfigured) return;
     startGame();
   };
 
   const handleStartGame = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isProcessing) return;
-    
-    if (!process.env.NEXT_PUBLIC_GOOGLE_API_KEY) {
-        toast({
-            title: "Configuração da IA Incompleta",
-            description: "A chave da API do Google está faltando. Adicione-a ao seu arquivo .env para o jogo funcionar.",
-            variant: "destructive",
-            duration: 9000,
-        });
-        return;
-    }
+    if (isProcessing || !isAiConfigured) return;
     
     if (!auth) {
       toast({
@@ -520,6 +510,19 @@ export default function GameClient() {
         return (
            <div className="flex flex-col items-center justify-center text-center w-full max-w-4xl p-4 gap-8 animate-fade-in">
             <Logo />
+            {!isAiConfigured && (
+                <Alert variant="destructive" className="mb-6 text-left">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Configuração da IA Incompleta</AlertTitle>
+                    <AlertDescription>
+                        A chave da API do Google está faltando. Para o jogo funcionar, você precisa obter uma chave no{' '}
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline font-bold hover:text-destructive-foreground">
+                            Google AI Studio
+                        </a>
+                        {' '}e colá-la no arquivo <strong>.env</strong> na variável <code>NEXT_PUBLIC_GOOGLE_API_KEY</code>.
+                    </AlertDescription>
+                </Alert>
+            )}
             <p className="text-2xl text-white/80">
               Mostre que você sabe tudo neste jogo de perguntas e respostas!<br/>Responda a 16 perguntas para ganhar R$ 1.000.000!
             </p>
@@ -530,7 +533,7 @@ export default function GameClient() {
                     <CardHeader className="p-0 pt-6 mb-4">
                         <CardTitle className="text-2xl">Jogar como Convidado</CardTitle>
                     </CardHeader>
-                    <Button onClick={handleGuestStart} size="lg" className="w-full font-bold text-lg" disabled={isProcessing}>
+                    <Button onClick={handleGuestStart} size="lg" className="w-full font-bold text-lg" disabled={isProcessing || !isAiConfigured}>
                         {isProcessing ? <Loader2 className="animate-spin" /> : "Jogar Agora"}
                     </Button>
                     <div className="mt-4 text-center text-sm text-white/70">
@@ -581,7 +584,7 @@ export default function GameClient() {
                                     <Label htmlFor="password-signup" className="text-white/80">Senha</Label>
                                     <Input id="password-signup" type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} required className="bg-black/30"/>
                                 </div>
-                                <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg" disabled={isProcessing}>
+                                <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg" disabled={isProcessing || !isAiConfigured}>
                                     {isProcessing ? <Loader2 className="animate-spin" /> : <><Gem className="mr-2"/>Criar e Jogar</>}
                                 </Button>
                             </form>
@@ -600,7 +603,7 @@ export default function GameClient() {
                                     <Label htmlFor="password-login" className="text-white/80">Senha</Label>
                                     <Input id="password-login" type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} required className="bg-black/30"/>
                                 </div>
-                                <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg" disabled={isProcessing}>
+                                <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg" disabled={isProcessing || !isAiConfigured}>
                                     {isProcessing ? <Loader2 className="animate-spin" /> : "Entrar e Jogar"}
                                 </Button>
                             </form>
