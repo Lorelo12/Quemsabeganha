@@ -165,6 +165,8 @@ export default function GameClient() {
           friendlyMessage = "A senha é muito fraca. Tente uma com pelo menos 6 caracteres.";
         } else if (errorCode === 'auth/operation-not-allowed') {
             friendlyMessage = "Cadastro por Email/Senha não está ativado. Habilite-o no seu Console do Firebase em Autenticação > Métodos de login.";
+        } else if (errorCode === 'auth/configuration-not-found') {
+            friendlyMessage = "Falha na configuração do Firebase. Verifique se as chaves em seu arquivo .env estão corretas e correspondem ao seu projeto.";
         }
         toast({ title: "Erro no Cadastro", description: friendlyMessage, variant: "destructive" });
       } finally {
@@ -187,6 +189,8 @@ export default function GameClient() {
         let friendlyMessage = "Ocorreu um erro ao fazer login. Verifique suas credenciais e a conexão.";
         if (errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password' || errorCode === 'auth/invalid-credential') {
             friendlyMessage = "Email ou senha incorretos.";
+        } else if (errorCode === 'auth/configuration-not-found') {
+            friendlyMessage = "Falha na configuração do Firebase. Verifique se as chaves em seu arquivo .env estão corretas.";
         }
         toast({ title: "Erro no Login", description: friendlyMessage, variant: "destructive" });
       } finally {
