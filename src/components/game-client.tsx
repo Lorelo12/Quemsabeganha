@@ -10,10 +10,13 @@ import { PRIZE_TIERS } from '@/lib/questions';
 import type { Question } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Clover, CornerDownLeft, Loader2, Lock, Sparkles } from 'lucide-react';
+import { CornerDownLeft, Loader2, Lock, Sparkles, Trophy } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { PrizeLadder } from './prize-ladder';
+import { Logo } from './logo';
+import { Card } from './ui/card';
 
 // Types
 type Message = {
@@ -55,6 +58,11 @@ export default function GameClient() {
     chatContainerRef.current?.scrollTo({ top: chatContainerRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages]);
 
+  const handleStart = () => {
+    setGameState('name_input');
+    addMessage({ role: 'host', content: "Bem-vindo(a) ao Quiz Milionário! 🍀 Para começar, por favor, insira seu nome." });
+  }
+
   const startGame = (name: string) => {
     setPlayerName(name);
     addMessage({ role: 'player', content: name });
@@ -79,7 +87,7 @@ export default function GameClient() {
       const prevPrize = PRIZE_TIERS[index - 1];
 
       if (prevPrize?.isCheckpoint) {
-        addMessage({ role: 'system', content: <div className="flex items-center gap-2 font-bold text-accent"><Lock /> Checkpoint! Você garantiu R$ {prevPrize.label}.</div> });
+        addMessage({ role: 'system', content: <div className="flex items-center gap-2 font-bold text-primary"><Lock /> Checkpoint! Você garantiu R$ {prevPrize.label}.</div> });
       }
 
       addMessage({ role: 'host', content: <QuestionDisplay question={newQuestion} prize={prize.label} index={index} onAnswer={handleAnswer} /> });
@@ -157,56 +165,69 @@ export default function GameClient() {
     setIsCorrect(null);
     form.reset();
   };
-
-  useEffect(() => {
-    if (gameState === 'welcome' && messages.length === 0) {
-      addMessage({ role: 'host', content: "Bem-vindo(a) ao Quiz Milionário! 🍀 Para começar, por favor, insira seu nome." });
-      setGameState('name_input');
-    }
-  }, [gameState, messages.length]);
+  
+  if (gameState === 'welcome') {
+    return (
+      <div className="flex flex-col items-center justify-center text-center h-screen w-full p-4 z-10">
+        <Logo />
+        <p className="max-w-xl text-lg text-primary-foreground/80 my-8">
+          Teste seus conhecimentos e veja se você pode chegar ao prêmio máximo de R$ 1 MILHÃO (fictício)!
+        </p>
+        <Button onClick={handleStart} size="lg" className="animate-pulse-slow text-xl font-bold px-12 py-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/50">
+          Começar
+        </Button>
+        <p className="absolute bottom-4 text-xs text-muted-foreground z-10">*Este jogo é apenas para fins de entretenimento. Os valores são fictícios e não representam prêmios reais.</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col h-screen w-full bg-background text-foreground font-sans">
-      <header className="flex items-center justify-center p-4 border-b shrink-0">
-         <Clover className="h-8 w-8 text-accent" />
-         <h1 className="text-2xl font-bold ml-2">Quiz Milionário</h1>
-      </header>
+    <div className="grid md:grid-cols-12 gap-6 w-full max-w-7xl mx-auto p-4 h-screen">
+      <Card className="md:col-span-8 lg:col-span-9 h-full flex flex-col bg-card/80 backdrop-blur-sm">
+        <header className="flex items-center justify-center p-4 border-b shrink-0">
+           <Trophy className="h-8 w-8 text-primary" />
+           <h1 className="text-2xl font-bold ml-2 text-primary-foreground">Quiz Milionário</h1>
+        </header>
 
-      <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
-        {messages.map((msg) => (
-          <ChatMessage key={msg.id} {...msg} />
-        ))}
-        {isProcessing && messages[messages.length-1]?.role === 'player' && (
-          <ChatMessage id="loading" role="host" content={<div className="flex items-center gap-2"><Loader2 className="animate-spin" /></div>} />
-        )}
+        <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+          {messages.map((msg) => (
+            <ChatMessage key={msg.id} {...msg} />
+          ))}
+          {isProcessing && messages[messages.length-1]?.role === 'player' && (
+            <ChatMessage id="loading" role="host" content={<div className="flex items-center gap-2"><Loader2 className="animate-spin" /></div>} />
+          )}
+        </div>
+
+        <footer className="p-4 border-t bg-card/90 backdrop-blur-sm shrink-0">
+          {gameState === 'name_input' && !isProcessing && (
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(data => startGame(data.name))} className="flex items-start gap-2">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormControl>
+                        <Input placeholder="Seu nome..." autoComplete="off" {...field} className="bg-background" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" aria-label="Enviar nome">
+                  <CornerDownLeft size={16} />
+                </Button>
+              </form>
+            </Form>
+          )}
+           {(gameState === 'playing' || gameState === 'answered' || gameState === 'game_over') && (
+            <div className="text-center text-xs text-muted-foreground">Este jogo é apenas para fins de entretenimento. Os valores são fictícios.</div>
+          )}
+        </footer>
+      </Card>
+      <div className="hidden md:block md:col-span-4 lg:col-span-3 h-full">
+        <PrizeLadder prizes={PRIZE_TIERS} currentQuestionIndex={currentQuestionIndex} />
       </div>
-
-      <footer className="p-4 border-t bg-white/80 backdrop-blur-sm shrink-0">
-        {gameState === 'name_input' && !isProcessing && (
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(data => startGame(data.name))} className="flex items-start gap-2">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem className="flex-1">
-                    <FormControl>
-                      <Input placeholder="Seu nome..." autoComplete="off" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" aria-label="Enviar nome">
-                <CornerDownLeft size={16} />
-              </Button>
-            </form>
-          </Form>
-        )}
-        {gameState !== 'name_input' && (
-          <div className="text-center text-xs text-muted-foreground">Este jogo é apenas para fins de entretenimento. Os valores são fictícios.</div>
-        )}
-      </footer>
     </div>
   );
 }
@@ -219,10 +240,10 @@ const ChatMessage = ({ role, content }: Message) => {
 
   return (
     <div className={cn('flex items-end gap-2 animate-fade-in', { 'justify-start': isHost, 'justify-end': isPlayer, 'justify-center': isSystem })}>
-      {isHost && <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-white shrink-0"><Sparkles size={20} /></div>}
-      <div className={cn('max-w-md md:max-w-lg lg:max-w-xl rounded-lg p-3 text-sm md:text-base shadow-sm', {
-        'bg-[#FFF8DC] text-gray-800 rounded-bl-none': isHost,
-        'bg-[#E3F2FD] text-black rounded-br-none': isPlayer,
+      {isHost && <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground shrink-0"><Sparkles size={20} /></div>}
+      <div className={cn('max-w-md md:max-w-lg lg:max-w-xl rounded-lg p-3 text-sm md:text-base shadow-lg', {
+        'bg-[#FFF8DC] text-gray-900 rounded-bl-none': isHost,
+        'bg-secondary text-secondary-foreground rounded-br-none': isPlayer,
         'bg-transparent text-muted-foreground text-xs italic shadow-none': isSystem,
       })}>
         {content}
@@ -241,8 +262,8 @@ const QuestionDisplay = ({ question, prize, index, onAnswer }: { question: Quest
       <p className="text-lg">{question.question}</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {Object.entries(question.options).map(([key, value]) => (
-          <Button key={key} variant="outline" className="justify-start h-auto p-3 whitespace-normal text-left bg-white hover:bg-gray-100 disabled:opacity-100" onClick={() => handleSelect(key, value)} disabled={answered}>
-            <span className="font-bold mr-2">{key}:</span> {value}
+          <Button key={key} variant="outline" className="justify-start h-auto p-3 whitespace-normal text-left bg-card hover:bg-muted disabled:opacity-100" onClick={() => handleSelect(key, value)} disabled={answered}>
+            <span className="font-bold mr-2 text-primary">{key}:</span> {value}
           </Button>
         ))}
       </div>

@@ -10,14 +10,14 @@ interface PrizeLadderProps {
 
 export function PrizeLadder({ prizes, currentQuestionIndex }: PrizeLadderProps) {
   return (
-    <Card className="shadow-lg h-full">
+    <Card className="shadow-lg h-full bg-card/80 backdrop-blur-sm">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 justify-center font-headline text-2xl">
-          <Trophy className="text-accent" />
+        <CardTitle className="flex items-center gap-2 justify-center text-2xl text-primary-foreground">
+          <Trophy className="text-primary" />
           Prêmios
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-2">
         <ul className="space-y-1">
           {prizes
             .slice()
@@ -31,15 +31,15 @@ export function PrizeLadder({ prizes, currentQuestionIndex }: PrizeLadderProps) 
                 <li
                   key={prize.amount}
                   className={cn(
-                    'flex items-center justify-between p-3 rounded-md transition-all duration-300',
-                    isCurrent && 'bg-accent text-accent-foreground scale-105 shadow-lg',
-                    isPast && 'bg-green-200 text-green-800',
-                    prize.isCheckpoint && 'font-bold',
-                    !isCurrent && !isPast && 'bg-primary/10'
+                    'flex items-center justify-between p-2 rounded-md transition-all duration-300 text-sm',
+                    isCurrent && 'bg-primary text-primary-foreground scale-105 shadow-lg shadow-primary/50',
+                    isPast && 'opacity-50',
+                    prize.isCheckpoint && 'font-bold text-primary-foreground',
+                    !isCurrent && !isPast && 'bg-muted/50'
                   )}
                 >
-                  <div className="flex items-center gap-2">
-                    {prize.isCheckpoint && <Star className="h-5 w-5 text-yellow-500" />}
+                  <div className="flex items-center gap-3">
+                     {prize.isCheckpoint ? <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" /> : <span className="w-5 h-5" />}
                     <span>{prizes.length - index}</span>
                   </div>
                   <span>R$ {prize.label}</span>

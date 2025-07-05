@@ -1,8 +1,10 @@
 import GameClient from '@/components/game-client';
+import { PrizeLadder } from '@/components/prize-ladder';
+import { PRIZE_TIERS } from '@/lib/questions';
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen w-full flex-col bg-background">
+    <main className="min-h-screen w-full">
       <GameClient />
     </main>
   );
