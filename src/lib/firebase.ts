@@ -3,7 +3,6 @@ import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 
 // Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -21,16 +20,19 @@ let auth: Auth | null = null;
 if (
   firebaseConfig.apiKey &&
   firebaseConfig.authDomain &&
-  firebaseConfig.projectId &&
-  firebaseConfig.storageBucket &&
-  firebaseConfig.messagingSenderId &&
-  firebaseConfig.appId
+  firebaseConfig.projectId
 ) {
+  try {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
+  } catch (error) {
+    console.error("Error initializing Firebase:", error);
+    console.warn("Please check that your Firebase credentials in the .env file are valid.");
+    app = null;
+    auth = null;
+  }
 } else {
     console.warn("Firebase configuration is incomplete. Authentication features will be disabled.");
 }
-
 
 export { app, auth };
