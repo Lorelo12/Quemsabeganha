@@ -82,6 +82,19 @@ export default function GameClient() {
   
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[] | null>(null);
   const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
+  
+  const checkApiKeys = () => {
+    if (!process.env.NEXT_PUBLIC_GOOGLE_API_KEY) {
+        toast({
+            title: "Configuração da IA Incompleta",
+            description: "A chave da API do Google está faltando. Adicione NEXT_PUBLIC_GOOGLE_API_KEY ao seu arquivo .env para o jogo funcionar.",
+            variant: "destructive",
+            duration: 9000,
+        });
+        return false;
+    }
+    return true;
+  }
 
   const resetLifelines = () => {
     setLifelines({ skip: 3, cards: true, audience: true, experts: true });
@@ -126,12 +139,15 @@ export default function GameClient() {
   
   const handleGuestStart = () => {
     if (isProcessing) return;
+    if (!checkApiKeys()) return;
     startGame();
   };
 
   const handleStartGame = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isProcessing) return;
+    
+    if (!checkApiKeys()) return;
 
     if (!auth) {
       toast({
@@ -213,12 +229,12 @@ export default function GameClient() {
   }
 
   const saveScore = useCallback(async (score: number) => {
-      if (!supabase || !auth?.currentUser || !playerName || score <= 0) return;
+      if (!supabase || !auth?.currentUser || !auth.currentUser.displayName || score <= 0) return;
       try {
           const { error } = await supabase
               .from('scores')
               .insert({ 
-                  player_name: playerName, 
+                  player_name: auth.currentUser.displayName, 
                   score: score, 
                   user_id: auth.currentUser.uid 
               });
@@ -227,7 +243,7 @@ export default function GameClient() {
           console.error('Error saving score:', error);
           toast({ title: "Erro ao salvar pontuação no ranking.", variant: "destructive" });
       }
-  }, [playerName, toast]);
+  }, [toast]);
 
   useEffect(() => {
     if (gameState === 'game_over') {
@@ -508,7 +524,6 @@ export default function GameClient() {
                 <>
                     <CardHeader className="p-0 pt-6 mb-4">
                         <CardTitle className="text-2xl">Jogar como Convidado</CardTitle>
-                        <CardDescription>Sua pontuação não será salva no ranking.</CardDescription>
                     </CardHeader>
                     <Button onClick={handleGuestStart} size="lg" className="w-full font-bold text-lg" disabled={isProcessing}>
                         {isProcessing ? <Loader2 className="animate-spin" /> : "Jogar Agora"}
