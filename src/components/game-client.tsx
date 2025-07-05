@@ -170,7 +170,7 @@ export default function GameClient() {
     return (
       <div className="flex flex-col items-center justify-center text-center h-screen w-full p-4 z-10">
         <Logo />
-        <p className="max-w-xl text-lg text-primary-foreground/80 my-8">
+        <p className="max-w-xl text-lg text-foreground/80 my-8">
           Teste seus conhecimentos e veja se você pode chegar ao prêmio máximo de R$ 1 MILHÃO (fictício)!
         </p>
         <Button onClick={handleStart} size="lg" className="animate-pulse-slow text-xl font-bold px-12 py-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/50">
@@ -186,7 +186,7 @@ export default function GameClient() {
       <Card className="md:col-span-8 lg:col-span-9 h-full flex flex-col bg-card/80 backdrop-blur-sm">
         <header className="flex items-center justify-center p-4 border-b shrink-0">
            <Trophy className="h-8 w-8 text-primary" />
-           <h1 className="text-2xl font-bold ml-2 text-primary-foreground">Quiz Milionário</h1>
+           <h1 className="text-2xl font-bold ml-2 text-foreground">Quiz Milionário</h1>
         </header>
 
         <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
@@ -242,7 +242,7 @@ const ChatMessage = ({ role, content }: Message) => {
     <div className={cn('flex items-end gap-2 animate-fade-in', { 'justify-start': isHost, 'justify-end': isPlayer, 'justify-center': isSystem })}>
       {isHost && <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground shrink-0"><Sparkles size={20} /></div>}
       <div className={cn('max-w-md md:max-w-lg lg:max-w-xl rounded-lg p-3 text-sm md:text-base shadow-lg', {
-        'bg-[#FFF8DC] text-gray-900 rounded-bl-none': isHost,
+        'bg-accent/30 text-accent-foreground rounded-bl-none border border-accent/50': isHost,
         'bg-secondary text-secondary-foreground rounded-br-none': isPlayer,
         'bg-transparent text-muted-foreground text-xs italic shadow-none': isSystem,
       })}>
