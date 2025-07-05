@@ -6,8 +6,6 @@ import { getAudiencePoll, type AudiencePollOutput } from '@/ai/flows/audience-po
 import { getExpertsOpinion, type ExpertsOpinionOutput } from '@/ai/flows/experts-opinion-flow';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { Progress } from '@/components/ui/progress';
 
@@ -15,21 +13,16 @@ import { useToast } from '@/hooks/use-toast';
 import { PRIZE_TIERS } from '@/lib/questions';
 import type { Question, LifelineState } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Crown, Layers, Users, GraduationCap, SkipForward, CircleDollarSign } from 'lucide-react';
+import { Loader2, Crown, Layers, Users, GraduationCap, SkipForward, CircleDollarSign, Gem, BarChart2, Lightbulb, Info } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
-import { useForm } from 'react-hook-form';
-import * as z from 'zod';
 import { Logo } from './logo';
 import { Card } from './ui/card';
+import { PrizeTable } from './prize-table';
 
 type GameState = 'name_input' | 'playing' | 'game_over';
 type AnswerStatus = 'unanswered' | 'correct' | 'incorrect';
 
 const TOTAL_QUESTIONS = 16;
-const nameSchema = z.object({
-  name: z.string().min(2, 'O nome deve ter pelo menos 2 caracteres.').max(50, 'O nome é muito longo.'),
-});
 
 const answerButtonColors: { [key: string]: { gradient: string } } = {
   A: { gradient: 'from-purple-500 to-indigo-600' },
@@ -41,7 +34,6 @@ const answerButtonColors: { [key: string]: { gradient: string } } = {
 
 export default function GameClient() {
   const [gameState, setGameState] = useState<GameState>('name_input');
-  const [playerName, setPlayerName] = useState('');
   const [askedQuestions, setAskedQuestions] = useState<string[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -61,11 +53,6 @@ export default function GameClient() {
   const [dialogContent, setDialogContent] = useState<'audience' | 'experts' | null>(null);
   const [audienceData, setAudienceData] = useState<AudiencePollOutput | null>(null);
   const [expertsData, setExpertsData] = useState<ExpertsOpinionOutput | null>(null);
-
-  const form = useForm<z.infer<typeof nameSchema>>({
-    resolver: zodResolver(nameSchema),
-    defaultValues: { name: '' },
-  });
 
   const resetLifelines = () => {
     setLifelines({ skip: 3, cards: true, audience: true, experts: true });
@@ -100,8 +87,7 @@ export default function GameClient() {
     }
   }, [askedQuestions, toast]);
 
-  const startGame = useCallback((name: string) => {
-    setPlayerName(name);
+  const startGame = useCallback(() => {
     setGameState('playing');
     resetLifelines();
     fetchQuestion(0);
@@ -121,7 +107,7 @@ export default function GameClient() {
             setGameState('game_over');
             setIsProcessing(false);
         }
-    }, 2500); // Wait for animations and for user to read host response
+    }, 2500);
 
     return () => clearTimeout(timer);
   }, [hostResponse, answerStatus, currentQuestionIndex, fetchQuestion]);
@@ -140,7 +126,7 @@ export default function GameClient() {
     const checkpointPrize = checkpointTier ? checkpointTier.amount : 0;
 
     try {
-      const res = await gameShowHost({ playerName, question: currentQuestion.question, answer: answerKey, isCorrect: isCorrect, currentPrize: nextPrize, checkpoint: checkpointPrize });
+      const res = await gameShowHost({ playerName: "Jogador(a)", question: currentQuestion.question, answer: answerKey, isCorrect: isCorrect, currentPrize: nextPrize, checkpoint: checkpointPrize });
       setHostResponse(res.response);
     } catch (error) {
       console.error(error);
@@ -150,14 +136,12 @@ export default function GameClient() {
 
   const restartGame = () => {
     setGameState('name_input');
-    setPlayerName('');
     setAskedQuestions([]);
     setCurrentQuestion(null);
     setCurrentQuestionIndex(0);
     setSelectedAnswer(null);
     setAnswerStatus('unanswered');
     setHostResponse('');
-    form.reset();
   };
   
   const handleUseSkip = () => {
@@ -300,30 +284,30 @@ export default function GameClient() {
     switch(gameState) {
       case 'name_input':
         return (
-          <div className="flex flex-col items-center justify-center text-center w-full max-w-2xl p-4">
+           <div className="flex flex-col items-center justify-center text-center w-full max-w-4xl p-4 gap-8 animate-fade-in">
             <Logo />
-            <p className="max-w-xl text-xl text-white/80 my-8">
-              Para começar sua jornada rumo ao prêmio fictício de R$ 1 Milhão, por favor, diga-nos seu nome.
+            <p className="text-2xl text-white/80">
+              O clássico Show do Milhão brasileiro com elegância!<br/>Responda 16 perguntas e ganhe R$ 1.000.000!
             </p>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(data => startGame(data.name))} className="flex flex-col items-center gap-4 w-full max-w-sm">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem className="w-full">
-                      <FormControl>
-                        <Input placeholder="Seu nome..." autoComplete="off" {...field} className="bg-black/30 border-2 border-primary/50 text-center text-lg h-14 ring-offset-background focus:ring-2 focus:ring-ring" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" size="lg" className="text-xl font-bold px-12 py-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/50 border-2 border-white/30 animate-pulse-slow">
-                  COMEÇAR
+            
+            <PrizeTable />
+
+            <Button onClick={startGame} size="lg" className="text-2xl font-bold px-12 py-8 rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-lg shadow-secondary/50 border-2 border-white/30 animate-pulse-slow">
+              <Gem className="mr-4 h-8 w-8 text-accent"/>
+              COMEÇAR O JOGO
+            </Button>
+
+            <div className="flex gap-4 mt-4">
+                <Button variant="ghost" className="text-secondary/80 hover:text-secondary" disabled>
+                    <BarChart2 className="mr-2"/> Ranking
                 </Button>
-              </form>
-            </Form>
+                <Button variant="ghost" className="text-secondary/80 hover:text-secondary" disabled>
+                    <Lightbulb className="mr-2"/> Ajuda
+                </Button>
+                <Button variant="ghost" className="text-secondary/80 hover:text-secondary" disabled>
+                    <Info className="mr-2"/> Créditos
+                </Button>
+            </div>
           </div>
         );
       case 'game_over':
@@ -336,7 +320,7 @@ export default function GameClient() {
             <Crown className="h-24 w-24 text-secondary animate-pulse-slow" style={{ filter: 'drop-shadow(0 0 15px hsl(var(--secondary)))' }}/>
             <h1 className="text-4xl md:text-6xl font-black mt-4 text-shadow-neon-yellow">Fim de Jogo!</h1>
             <p className="text-2xl mt-4 text-white/80">
-              {isWinner ? `Parabéns, ${playerName}!` : `Que pena, ${playerName}!`}
+              {isWinner ? `Parabéns!` : `Que pena!`}
             </p>
             <p className="max-w-xl text-lg text-white/80 my-8">
               {isWinner 
