@@ -7,13 +7,14 @@ import { getExpertsOpinion, type ExpertsOpinionOutput } from '@/ai/flows/experts
 
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 
 import { useToast } from '@/hooks/use-toast';
 import { PRIZE_TIERS } from '@/lib/questions';
 import type { Question, LifelineState } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Loader2, Crown, Layers, Users, GraduationCap, SkipForward, CircleDollarSign, Gem, BarChart2, Lightbulb, Info } from 'lucide-react';
+import { Loader2, Crown, Layers, Users, GraduationCap, SkipForward, CircleDollarSign, Gem, BarChart2, Lightbulb, Info, Trophy } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { Logo } from './logo';
 import { Card } from './ui/card';
@@ -21,6 +22,7 @@ import { PrizeTable } from './prize-table';
 
 type GameState = 'name_input' | 'playing' | 'game_over';
 type AnswerStatus = 'unanswered' | 'correct' | 'incorrect';
+type InfoDialog = 'ranking' | 'ajuda' | 'creditos';
 
 const TOTAL_QUESTIONS = 16;
 
@@ -51,6 +53,7 @@ export default function GameClient() {
   });
   const [disabledOptions, setDisabledOptions] = useState<string[]>([]);
   const [dialogContent, setDialogContent] = useState<'audience' | 'experts' | null>(null);
+  const [infoDialog, setInfoDialog] = useState<InfoDialog | null>(null);
   const [audienceData, setAudienceData] = useState<AudiencePollOutput | null>(null);
   const [expertsData, setExpertsData] = useState<ExpertsOpinionOutput | null>(null);
 
@@ -125,8 +128,11 @@ export default function GameClient() {
 
     const nextPrize = PRIZE_TIERS[currentQuestionIndex].amount;
     
-    // If the player is wrong, they win the prize of the last question they answered correctly.
-    const prizeOnFailure = currentQuestionIndex > 0 ? PRIZE_TIERS[currentQuestionIndex - 1].amount : 0;
+    // If the player is wrong, they win the prize of the last secure checkpoint.
+    const lastCheckpointIndex = PRIZE_TIERS.slice(0, currentQuestionIndex)
+        .map(p => p.isCheckpoint)
+        .lastIndexOf(true);
+    const prizeOnFailure = lastCheckpointIndex !== -1 ? PRIZE_TIERS[lastCheckpointIndex].amount : 0;
 
     try {
       const res = await gameShowHost({ playerName: "Jogador(a)", question: currentQuestion.question, answer: answerKey, isCorrect: isCorrect, currentPrize: nextPrize, prizeOnFailure: prizeOnFailure });
@@ -301,13 +307,13 @@ export default function GameClient() {
             </Button>
 
             <div className="flex gap-4 mt-4">
-                <Button variant="ghost" className="text-secondary/80 hover:text-secondary" disabled>
+                <Button variant="ghost" className="text-secondary/80 hover:text-secondary" onClick={() => setInfoDialog('ranking')}>
                     <BarChart2 className="mr-2"/> Ranking
                 </Button>
-                <Button variant="ghost" className="text-secondary/80 hover:text-secondary" disabled>
+                <Button variant="ghost" className="text-secondary/80 hover:text-secondary" onClick={() => setInfoDialog('ajuda')}>
                     <Lightbulb className="mr-2"/> Ajuda
                 </Button>
-                <Button variant="ghost" className="text-secondary/80 hover:text-secondary" disabled>
+                <Button variant="ghost" className="text-secondary/80 hover:text-secondary" onClick={() => setInfoDialog('creditos')}>
                     <Info className="mr-2"/> Créditos
                 </Button>
             </div>
@@ -320,9 +326,12 @@ export default function GameClient() {
         if (isWinner) {
           prizeWon = PRIZE_TIERS[TOTAL_QUESTIONS - 1].amount;
         } else {
-          // Player lost. They win the prize of the last question they answered correctly.
-          const lastCorrectIndex = currentQuestionIndex - 1;
-          prizeWon = lastCorrectIndex >= 0 ? PRIZE_TIERS[lastCorrectIndex].amount : 0;
+          // Player lost. They win the prize of the last secure checkpoint.
+          const lastCheckpointIndex = PRIZE_TIERS.slice(0, currentQuestionIndex)
+              .map(p => p.isCheckpoint)
+              .lastIndexOf(true);
+          
+          prizeWon = lastCheckpointIndex !== -1 ? PRIZE_TIERS[lastCheckpointIndex].amount : 0;
         }
         
         return (
@@ -409,6 +418,90 @@ export default function GameClient() {
           )}
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={infoDialog !== null} onOpenChange={(isOpen) => !isOpen && setInfoDialog(null)}>
+        <DialogContent className="bg-dark-bg border-primary shadow-lg shadow-primary/30 text-left">
+          <DialogHeader>
+            <DialogTitle className="text-2xl text-shadow-neon-pink flex items-center gap-2">
+              {infoDialog === 'ranking' && <><Trophy /> Ranking dos Milionários</>}
+              {infoDialog === 'ajuda' && <><Lightbulb /> Como Jogar</>}
+              {infoDialog === 'creditos' && <><Info /> Créditos</>}
+            </DialogTitle>
+            <DialogDescription asChild>
+              <div>
+                {infoDialog === 'ranking' && (
+                  <div className="space-y-4 pt-4 text-left">
+                    <p className="text-sm text-white/80">O ranking ainda está em construção, mas aqui estão nossos maiores vencedores até agora!</p>
+                    <ol className="list-none space-y-3">
+                      <li className="flex items-center justify-between p-2 bg-black/30 rounded-md">
+                        <span>👑 Jogador(a) Top 1</span>
+                        <span className="font-bold text-secondary">R$ 1.000.000</span>
+                      </li>
+                      <li className="flex items-center justify-between p-2 bg-black/30 rounded-md">
+                        <span>🥈 Jogador(a) Top 2</span>
+                        <span className="font-bold text-secondary">R$ 500.000</span>
+                      </li>
+                      <li className="flex items-center justify-between p-2 bg-black/30 rounded-md">
+                        <span>🥉 Jogador(a) Top 3</span>
+                        <span className="font-bold text-secondary">R$ 300.000</span>
+                      </li>
+                    </ol>
+                  </div>
+                )}
+                {infoDialog === 'ajuda' && (
+                  <div className="space-y-4 pt-4 text-left text-white/90 max-h-[60vh] overflow-y-auto pr-2">
+                      <p>O objetivo é simples: responda a 16 perguntas de conhecimentos gerais para ganhar o prêmio máximo de R$ 1.000.000!</p>
+                      
+                      <div>
+                          <h3 className="font-bold text-primary mb-2">Ajudas Disponíveis:</h3>
+                          <ul className="space-y-1 list-disc list-inside">
+                              <li><strong className="text-secondary">Pular:</strong> Você tem 3 chances de pular uma pergunta que não sabe.</li>
+                              <li><strong className="text-primary">Convidados:</strong> Pede a opinião de três especialistas fictícios.</li>
+                              <li><strong className="text-cyan-400">Cartas:</strong> Remove duas respostas incorretas da tela.</li>
+                              <li><strong className="text-orange-400">Platéia:</strong> Mostra a porcentagem de votos da plateia para cada opção.</li>
+                          </ul>
+                      </div>
+                  
+                      <div>
+                          <h3 className="font-bold text-primary mb-2">Regras de Premiação:</h3>
+                          <ul className="space-y-1 list-disc list-inside">
+                              <li>A cada resposta correta, você avança para o próximo nível de prêmio.</li>
+                              <li>Existem dois <strong className="text-secondary">checkpoints seguros</strong>: na pergunta 5 (R$ 5.000) e na pergunta 10 (R$ 50.000).</li>
+                              <li>Se errar, você leva para casa o valor do último checkpoint que alcançou. Se errar antes do primeiro checkpoint, o prêmio é R$ 0.</li>
+                          </ul>
+                      </div>
+                      <p className="text-center font-bold pt-4">Boa sorte! 🍀</p>
+                  </div>
+                )}
+                {infoDialog === 'creditos' && (
+                  <div className="space-y-4 pt-4 text-left text-white/90">
+                      <p>Este jogo é uma homenagem ao clássico "Show do Milhão" e foi desenvolvido como uma demonstração das capacidades da IA generativa.</p>
+                      
+                      <div className="text-center py-2">
+                          <p>Desenvolvido com 💖 por</p>
+                          <p className="font-bold text-lg text-primary text-shadow-neon-pink">Firebase Studio</p>
+                      </div>
+                  
+                      <div>
+                          <h3 className="font-bold text-secondary mb-2">Tecnologias Utilizadas:</h3>
+                          <ul className="space-y-1 list-disc list-inside">
+                              <li>Next.js & React</li>
+                              <li>Tailwind CSS & ShadCN UI</li>
+                              <li>Genkit & Google Gemini</li>
+                          </ul>
+                      </div>
+                  </div>
+                )}
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button>Fechar</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
