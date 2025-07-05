@@ -89,6 +89,8 @@ export default function GameClient() {
 
   const startGame = useCallback(() => {
     setGameState('playing');
+    setAskedQuestions([]);
+    setCurrentQuestionIndex(0);
     resetLifelines();
     fetchQuestion(0);
   }, [fetchQuestion]);
@@ -122,8 +124,11 @@ export default function GameClient() {
     setAnswerStatus(isCorrect ? 'correct' : 'incorrect');
 
     const nextPrize = PRIZE_TIERS[currentQuestionIndex].amount;
-    const checkpointTier = [...PRIZE_TIERS].slice(0, currentQuestionIndex).reverse().find(p => p.isCheckpoint);
-    const checkpointPrize = checkpointTier ? checkpointTier.amount : 0;
+    
+    // Find the last checkpoint the player has passed
+    const passedTiers = [...PRIZE_TIERS].slice(0, currentQuestionIndex);
+    const lastCheckpoint = passedTiers.filter(p => p.isCheckpoint).pop();
+    const checkpointPrize = lastCheckpoint ? lastCheckpoint.amount : 0;
 
     try {
       const res = await gameShowHost({ playerName: "Jogador(a)", question: currentQuestion.question, answer: answerKey, isCorrect: isCorrect, currentPrize: nextPrize, checkpoint: checkpointPrize });
@@ -312,8 +317,16 @@ export default function GameClient() {
         );
       case 'game_over':
         const isWinner = answerStatus === 'correct' && currentQuestionIndex === TOTAL_QUESTIONS - 1;
-        const checkpointTier = [...PRIZE_TIERS].slice(0, isWinner ? TOTAL_QUESTIONS : currentQuestionIndex).reverse().find(p => p.isCheckpoint);
-        const prizeWon = isWinner ? PRIZE_TIERS[TOTAL_QUESTIONS - 1].amount : (checkpointTier ? checkpointTier.amount : 0);
+        let prizeWon = 0;
+        
+        if (isWinner) {
+          prizeWon = PRIZE_TIERS[TOTAL_QUESTIONS - 1].amount;
+        } else {
+          // Player lost, find the last checkpoint they passed
+          const passedTiers = [...PRIZE_TIERS].slice(0, currentQuestionIndex);
+          const lastCheckpoint = passedTiers.filter(p => p.isCheckpoint).pop();
+          prizeWon = lastCheckpoint ? lastCheckpoint.amount : 0;
+        }
         
         return (
           <div className="flex flex-col items-center justify-center text-center w-full max-w-2xl animate-fade-in">
