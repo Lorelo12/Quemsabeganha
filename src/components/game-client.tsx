@@ -5,6 +5,7 @@ import { generateQuestion } from '@/ai/flows/generate-question-flow';
 import { getAudiencePoll, type AudiencePollOutput } from '@/ai/flows/audience-poll-flow';
 import { getExpertsOpinion, type ExpertsOpinionOutput } from '@/ai/flows/experts-opinion-flow';
 import { auth } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
@@ -35,6 +36,7 @@ import { PrizeTable } from './prize-table';
 type GameState = 'auth' | 'playing' | 'game_over';
 type AnswerStatus = 'unanswered' | 'correct' | 'incorrect';
 type InfoDialog = 'ranking' | 'ajuda' | 'creditos' | 'feedback';
+type LeaderboardEntry = { player_name: string; score: number };
 
 const TOTAL_QUESTIONS = 16;
 
@@ -74,6 +76,10 @@ export default function GameClient() {
   const [audienceData, setAudienceData] = useState<AudiencePollOutput | null>(null);
   const [expertsData, setExpertsData] = useState<ExpertsOpinionOutput | null>(null);
   const [feedbackText, setFeedbackText] = useState('');
+  const [prizeWon, setPrizeWon] = useState(0);
+  
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[] | null>(null);
+  const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
 
   const resetLifelines = () => {
     setLifelines({ skip: 3, cards: true, audience: true, experts: true });
@@ -130,10 +136,6 @@ export default function GameClient() {
     }
     
     setIsProcessing(true);
-    
-    const currentDisplayName = authTab === 'login' 
-        ? auth.currentUser?.displayName || 'Jogador(a)'
-        : playerName;
 
     if (authTab === 'signup') {
       if (!playerName.trim() || !email || !password) {
@@ -203,6 +205,43 @@ export default function GameClient() {
     }
   }
 
+  const saveScore = useCallback(async (score: number) => {
+      if (!supabase || !auth?.currentUser || !playerName || score <= 0) return;
+      try {
+          const { error } = await supabase
+              .from('scores')
+              .insert({ 
+                  player_name: playerName, 
+                  score: score, 
+                  user_id: auth.currentUser.uid 
+              });
+          if (error) throw error;
+      } catch (error) {
+          console.error('Error saving score:', error);
+          toast({ title: "Erro ao salvar pontuação no ranking.", variant: "destructive" });
+      }
+  }, [playerName, toast]);
+
+  useEffect(() => {
+    if (gameState === 'game_over') {
+      const isWinner = answerStatus === 'correct' && currentQuestionIndex === TOTAL_QUESTIONS - 1;
+      let finalPrize = 0;
+      if (isWinner) {
+        finalPrize = PRIZE_TIERS[TOTAL_QUESTIONS - 1].amount;
+      } else {
+        const lastCheckpointIndex = PRIZE_TIERS.slice(0, currentQuestionIndex)
+          .map(p => p.isCheckpoint)
+          .lastIndexOf(true);
+        finalPrize = lastCheckpointIndex !== -1 ? PRIZE_TIERS[lastCheckpointIndex].amount : 0;
+      }
+      
+      setPrizeWon(finalPrize);
+      if (finalPrize > 0) {
+        saveScore(finalPrize);
+      }
+    }
+  }, [gameState, answerStatus, currentQuestionIndex, saveScore]);
+
   useEffect(() => {
     if (!hostResponse || answerStatus === 'unanswered') return;
 
@@ -260,6 +299,8 @@ export default function GameClient() {
     setSelectedAnswer(null);
     setAnswerStatus('unanswered');
     setHostResponse('');
+    setPrizeWon(0);
+    setLeaderboard(null);
   };
   
   const handleUseSkip = () => {
@@ -335,6 +376,30 @@ export default function GameClient() {
       description: "Obrigado pela sua contribuição. Sua opinião é muito importante!",
     });
   };
+
+  const fetchLeaderboard = async () => {
+      if (!supabase) {
+        toast({ title: "Funcionalidade desabilitada", description: "O ranking não está configurado. Adicione as chaves do Supabase no .env", variant: "destructive" });
+        return;
+      };
+      setIsLeaderboardLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('scores')
+          .select('player_name, score')
+          .order('score', { ascending: false })
+          .limit(10);
+
+        if (error) throw error;
+        setLeaderboard(data);
+      } catch (error) {
+        console.error('Error fetching leaderboard:', error);
+        setLeaderboard([]);
+        toast({ title: "Erro ao carregar o ranking.", variant: "destructive" });
+      } finally {
+        setIsLeaderboardLoading(false);
+      }
+    };
   
   const renderGameScreen = () => {
      if (isProcessing && !currentQuestion && !hostResponse) {
@@ -482,7 +547,7 @@ export default function GameClient() {
             </Card>
 
             <div className="flex flex-wrap justify-center gap-4 mt-4">
-                <Button variant="ghost" className="text-secondary/80 hover:text-secondary" onClick={() => setInfoDialog('ranking')}>
+                <Button variant="ghost" className="text-secondary/80 hover:text-secondary" onClick={() => { setInfoDialog('ranking'); fetchLeaderboard(); }}>
                     <BarChart2 className="mr-2"/> Ranking
                 </Button>
                 <Button variant="ghost" className="text-secondary/80 hover:text-secondary" onClick={() => setInfoDialog('ajuda')}>
@@ -499,18 +564,6 @@ export default function GameClient() {
         );
       case 'game_over':
         const isWinner = answerStatus === 'correct' && currentQuestionIndex === TOTAL_QUESTIONS - 1;
-        let prizeWon = 0;
-        
-        if (isWinner) {
-          prizeWon = PRIZE_TIERS[TOTAL_QUESTIONS - 1].amount;
-        } else {
-          // Player lost. They win the prize of the last secure checkpoint.
-          const lastCheckpointIndex = PRIZE_TIERS.slice(0, currentQuestionIndex)
-              .map(p => p.isCheckpoint)
-              .lastIndexOf(true);
-          
-          prizeWon = lastCheckpointIndex !== -1 ? PRIZE_TIERS[lastCheckpointIndex].amount : 0;
-        }
         
         return (
           <div className="flex flex-col items-center justify-center text-center w-full max-w-2xl animate-fade-in">
@@ -616,21 +669,23 @@ export default function GameClient() {
                 {infoDialog === 'ranking' && (
                   <>
                     <div className="space-y-4 pt-4 text-left">
-                      <p className="text-sm text-white/80">O ranking ainda está em construção, mas aqui estão nossos maiores vencedores até agora!</p>
-                      <ol className="list-none space-y-3">
-                        <li className="flex items-center justify-between p-2 bg-black/30 rounded-md">
-                          <span>👑 {auth?.currentUser?.displayName || 'Jogador(a) Top 1'}</span>
-                          <span className="font-bold text-secondary">R$ 1.000.000</span>
-                        </li>
-                        <li className="flex items-center justify-between p-2 bg-black/30 rounded-md">
-                          <span>🥈 Jogador(a) Top 2</span>
-                          <span className="font-bold text-secondary">R$ 500.000</span>
-                        </li>
-                        <li className="flex items-center justify-between p-2 bg-black/30 rounded-md">
-                          <span>🥉 Jogador(a) Top 3</span>
-                          <span className="font-bold text-secondary">R$ 300.000</span>
-                        </li>
-                      </ol>
+                      <p className="text-sm text-white/80">Veja os melhores jogadores!</p>
+                       {isLeaderboardLoading ? (
+                        <div className="flex justify-center items-center h-40">
+                          <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                        </div>
+                      ) : leaderboard && leaderboard.length > 0 ? (
+                        <ol className="list-none space-y-3">
+                          {leaderboard.map((entry, index) => (
+                              <li key={index} className="flex items-center justify-between p-2 bg-black/30 rounded-md">
+                                <span className="font-semibold">{index + 1}. {entry.player_name}</span>
+                                <span className="font-bold text-secondary">R$ {entry.score.toLocaleString('pt-BR')}</span>
+                              </li>
+                          ))}
+                        </ol>
+                      ) : (
+                        <p className="text-center text-white/70 py-10">O ranking está vazio ou não pôde ser carregado.</p>
+                      )}
                     </div>
                     <DialogFooter className="!mt-4 sm:!justify-end">
                         <DialogClose asChild><Button>Fechar</Button></DialogClose>
@@ -684,6 +739,7 @@ export default function GameClient() {
                                 <li>Tailwind CSS & ShadCN UI</li>
                                 <li>Genkit & Google Gemini</li>
                                 <li>Firebase Authentication</li>
+                                <li>Supabase</li>
                             </ul>
                         </div>
                     </div>
