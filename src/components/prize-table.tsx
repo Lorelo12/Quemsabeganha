@@ -39,10 +39,10 @@ export function PrizeTable() {
             <CardContent className="p-0">
                 <div className="grid grid-cols-2 gap-x-2">
                     <div className="flex flex-col-reverse gap-1.5">
-                        {secondHalf.map((tier, index) => renderTier(tier, index + 8))}
+                        {firstHalf.map((tier, index) => renderTier(tier, index))}
                     </div>
                     <div className="flex flex-col-reverse gap-1.5">
-                        {firstHalf.map((tier, index) => renderTier(tier, index))}
+                        {secondHalf.map((tier, index) => renderTier(tier, index + 8))}
                     </div>
                 </div>
                 <p className="text-center text-xs text-white/70 mt-4 flex items-center justify-center gap-2">
