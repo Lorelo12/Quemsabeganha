@@ -17,9 +17,20 @@ const firebaseConfig = {
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 
-if (firebaseConfig.apiKey) {
+// Check that all required Firebase environment variables are set before initializing
+if (
+  firebaseConfig.apiKey &&
+  firebaseConfig.authDomain &&
+  firebaseConfig.projectId &&
+  firebaseConfig.storageBucket &&
+  firebaseConfig.messagingSenderId &&
+  firebaseConfig.appId
+) {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
+} else {
+    console.warn("Firebase configuration is incomplete. Authentication features will be disabled.");
 }
+
 
 export { app, auth };

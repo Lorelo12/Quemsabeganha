@@ -83,19 +83,6 @@ export default function GameClient() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[] | null>(null);
   const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
   
-  const checkApiKeys = () => {
-    if (!process.env.NEXT_PUBLIC_GOOGLE_API_KEY) {
-        toast({
-            title: "Configuração da IA Incompleta",
-            description: "A chave da API do Google está faltando. Adicione NEXT_PUBLIC_GOOGLE_API_KEY ao seu arquivo .env para o jogo funcionar.",
-            variant: "destructive",
-            duration: 9000,
-        });
-        return false;
-    }
-    return true;
-  }
-
   const resetLifelines = () => {
     setLifelines({ skip: 3, cards: true, audience: true, experts: true });
     setDisabledOptions([]);
@@ -120,7 +107,7 @@ export default function GameClient() {
       console.error("Failed to fetch question:", error);
       toast({
         title: "Erro na Geração da Pergunta",
-        description: "Não foi possível conectar com nossa produção. Tente recomeçar o jogo.",
+        description: "Não foi possível conectar com nossa produção. Verifique sua chave de API do Google e tente recomeçar o jogo.",
         variant: "destructive",
       });
       setGameState('game_over');
@@ -139,7 +126,15 @@ export default function GameClient() {
   
   const handleGuestStart = () => {
     if (isProcessing) return;
-    if (!checkApiKeys()) return;
+    if (!process.env.NEXT_PUBLIC_GOOGLE_API_KEY) {
+        toast({
+            title: "Configuração da IA Incompleta",
+            description: "A chave da API do Google está faltando. Adicione-a ao seu arquivo .env para o jogo funcionar.",
+            variant: "destructive",
+            duration: 9000,
+        });
+        return;
+    }
     startGame();
   };
 
@@ -147,13 +142,22 @@ export default function GameClient() {
     e.preventDefault();
     if (isProcessing) return;
     
-    if (!checkApiKeys()) return;
-
+    if (!process.env.NEXT_PUBLIC_GOOGLE_API_KEY) {
+        toast({
+            title: "Configuração da IA Incompleta",
+            description: "A chave da API do Google está faltando. Adicione-a ao seu arquivo .env para o jogo funcionar.",
+            variant: "destructive",
+            duration: 9000,
+        });
+        return;
+    }
+    
     if (!auth) {
       toast({
         title: "Firebase não configurado",
         description: "Adicione as chaves do Firebase ao seu arquivo .env para habilitar a autenticação.",
         variant: "destructive",
+        duration: 9000,
       });
       return;
     }
