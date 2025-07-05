@@ -124,18 +124,8 @@ export default function GameClient() {
     fetchQuestion(0);
   }, [fetchQuestion]);
   
-  const handleGuestStart = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleGuestStart = () => {
     if (isProcessing) return;
-
-    if (!playerName.trim()) {
-      toast({
-        title: 'Apelido Obrigatório',
-        description: 'Por favor, insira um apelido para jogar.',
-        variant: 'destructive',
-      });
-      return;
-    }
     startGame();
   };
 
@@ -517,20 +507,14 @@ export default function GameClient() {
                 {authView === 'guest' ? (
                 <>
                     <CardHeader className="p-0 pt-6 mb-4">
-                        <CardTitle className="text-2xl">Jogar Agora</CardTitle>
-                        <CardDescription>Insira um apelido para começar.</CardDescription>
+                        <CardTitle className="text-2xl">Jogar como Convidado</CardTitle>
+                        <CardDescription>Sua pontuação não será salva no ranking.</CardDescription>
                     </CardHeader>
-                    <form onSubmit={handleGuestStart} className="space-y-4">
-                        <div className="space-y-2 text-left">
-                            <Label htmlFor="nickname-guest" className="text-white/80">Apelido</Label>
-                            <Input id="nickname-guest" placeholder="Seu nome no jogo" value={playerName} onChange={(e) => setPlayerName(e.target.value)} required className="bg-black/30"/>
-                        </div>
-                        <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg" disabled={isProcessing}>
-                            {isProcessing ? <Loader2 className="animate-spin" /> : "Jogar"}
-                        </Button>
-                    </form>
+                    <Button onClick={handleGuestStart} size="lg" className="w-full font-bold text-lg" disabled={isProcessing}>
+                        {isProcessing ? <Loader2 className="animate-spin" /> : "Jogar Agora"}
+                    </Button>
                     <div className="mt-4 text-center text-sm text-white/70">
-                        <p>Para salvar sua pontuação no ranking...</p>
+                        <p>Para seu nome aparecer no ranking...</p>
                         <Button variant="link" className="text-secondary p-0 h-auto text-sm" onClick={() => setAuthView('login')}>
                             Crie uma conta ou faça login &rarr;
                         </Button>
