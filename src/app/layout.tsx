@@ -1,9 +1,9 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
-import { Quicksand } from 'next/font/google'
+import { Poppins } from 'next/font/google'
 
-const quicksand = Quicksand({ subsets: ['latin'], weight: ['400', '500', '700'] })
+const poppins = Poppins({ subsets: ['latin'], weight: ['400', '500', '700', '900'] })
 
 export const metadata: Metadata = {
   title: 'Quiz Milionário',
@@ -17,7 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={`${quicksand.className} antialiased`}>
+      <body className={`${poppins.className} antialiased`}>
         {children}
         <Toaster />
       </body>

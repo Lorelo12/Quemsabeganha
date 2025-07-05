@@ -10,7 +10,7 @@ interface PrizeLadderProps {
 
 export function PrizeLadder({ prizes, currentQuestionIndex }: PrizeLadderProps) {
   return (
-    <Card className="shadow-lg h-full bg-card/70 backdrop-blur-sm border-2 border-accent/30">
+    <Card className="shadow-lg h-full bg-card/70 backdrop-blur-sm border-2 border-primary/30">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 justify-center text-2xl text-accent-foreground font-bold">
           <Trophy className="text-accent" />
@@ -33,21 +33,21 @@ export function PrizeLadder({ prizes, currentQuestionIndex }: PrizeLadderProps) 
                   key={prize.amount}
                   className={cn(
                     'flex items-center justify-between p-2 rounded-md transition-all duration-300 font-medium',
-                    isCurrent && 'bg-primary text-primary-foreground scale-105 shadow-lg shadow-primary/50',
+                    isCurrent && 'bg-primary/80 text-primary-foreground scale-105 shadow-lg shadow-primary/50 animate-pulse',
                     isPast && 'opacity-50',
-                    prize.isCheckpoint && 'font-bold text-primary-foreground',
-                    !isCurrent && !isPast && 'bg-muted/50'
+                    prize.isCheckpoint && !isCurrent && 'font-bold bg-primary/20',
+                    !isCurrent && !isPast && !prize.isCheckpoint && 'bg-muted/50'
                   )}
                 >
                   <div className="flex items-center gap-3">
                      {isTopPrize ? (
                         <Crown className="h-5 w-5 text-accent" />
                       ) : prize.isCheckpoint ? (
-                        <Lock className="h-5 w-5 text-accent" />
+                        <Lock className="h-5 w-5 text-pink-400" />
                       ) : (
                         <Star className="h-5 w-5 text-accent/50" />
                       )}
-                    <span>{prizes.length - index}</span>
+                    <span className="font-bold">{prizes.length - index}</span>
                   </div>
                   <div className="flex flex-col items-end leading-tight">
                     <span>R$ {prize.label}</span>

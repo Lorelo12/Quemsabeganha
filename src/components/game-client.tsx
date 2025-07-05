@@ -32,6 +32,14 @@ const nameSchema = z.object({
   name: z.string().min(2, 'O nome deve ter pelo menos 2 caracteres.').max(50, 'O nome é muito longo.'),
 });
 
+const answerButtonColors: { [key: string]: string } = {
+  A: 'bg-sky-200 hover:bg-sky-300 text-sky-900 border-sky-400',
+  B: 'bg-emerald-200 hover:bg-emerald-300 text-emerald-900 border-emerald-400',
+  C: 'bg-amber-200 hover:bg-amber-300 text-amber-900 border-amber-400',
+  D: 'bg-rose-200 hover:bg-rose-300 text-rose-900 border-rose-400',
+};
+
+
 export default function GameClient() {
   const [gameState, setGameState] = useState<GameState>('name_input');
   const [playerName, setPlayerName] = useState('');
@@ -217,13 +225,13 @@ export default function GameClient() {
               render={({ field }) => (
                 <FormItem className="w-full">
                   <FormControl>
-                    <Input placeholder="Seu nome..." autoComplete="off" {...field} className="bg-background text-center text-lg h-12" />
+                    <Input placeholder="Seu nome..." autoComplete="off" {...field} className="bg-card text-center text-lg h-12" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button type="submit" size="lg" className="text-xl font-bold px-12 py-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-accent/50 border-2 border-accent/20">
+            <Button type="submit" size="lg" className="text-xl font-bold px-12 py-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-accent/50 border-2 border-accent/20 animate-pulse-slow">
               Confirmar
             </Button>
           </form>
@@ -261,12 +269,12 @@ export default function GameClient() {
 
   return (
     <TooltipProvider>
-    <div className="grid md:grid-cols-12 gap-6 w-full max-w-7xl mx-auto p-4 min-h-screen">
-      <main className={cn(
-        "md:col-span-8 lg:col-span-9 flex flex-col justify-center items-center gap-6 p-4 rounded-lg transition-colors duration-500",
-        flash === 'green' && 'bg-green-500/20',
-        flash === 'red' && 'bg-red-500/20'
+    <div className={cn(
+        "grid md:grid-cols-12 gap-6 w-full max-w-7xl mx-auto p-4 min-h-screen transition-all duration-300",
+        flash === 'green' && 'shadow-[inset_0_0_0_8px_theme(colors.green.400)] rounded-2xl',
+        flash === 'red' && 'shadow-[inset_0_0_0_8px_theme(colors.red.400)] rounded-2xl'
       )}>
+      <main className="md:col-span-8 lg:col-span-9 flex flex-col justify-center items-center gap-6 p-4 rounded-lg">
         {isProcessing && !currentQuestion && (
            <div className="flex flex-col items-center gap-4 text-primary-foreground">
              <Loader2 className="h-12 w-12 animate-spin" />
@@ -275,7 +283,7 @@ export default function GameClient() {
         )}
         {currentQuestion && (
           <div className="w-full max-w-3xl flex flex-col gap-6 animate-fade-in">
-            <Card className="text-center shadow-xl border-2 border-primary/20" >
+            <Card className="text-center shadow-xl border-2 border-primary/20 bg-card/80 backdrop-blur-sm" >
               <CardHeader>
                 <CardTitle className="text-lg md:text-xl font-normal text-muted-foreground">
                   Pergunta {currentQuestionIndex + 1} <span className="font-bold text-primary-foreground">Valendo R$ {PRIZE_TIERS[currentQuestionIndex].label}</span>
@@ -288,19 +296,19 @@ export default function GameClient() {
 
             <div className="flex justify-center gap-4 my-4">
               <Tooltip>
-                <TooltipTrigger asChild><Button variant="outline" size="lg" onClick={handleUseCards} disabled={!lifelines.cards || !canUseLifeline} className="disabled:opacity-40"><Layers className="w-6 h-6"/></Button></TooltipTrigger>
+                <TooltipTrigger asChild><Button variant="outline" size="lg" onClick={handleUseCards} disabled={!lifelines.cards || !canUseLifeline} className="disabled:opacity-40 w-16 h-16 rounded-full"><Layers className="w-8 h-8"/></Button></TooltipTrigger>
                 <TooltipContent><p>Cartas: Remove 2 opções incorretas.</p></TooltipContent>
               </Tooltip>
               <Tooltip>
-                <TooltipTrigger asChild><Button variant="outline" size="lg" onClick={handleUseAudience} disabled={!lifelines.audience || !canUseLifeline} className="disabled:opacity-40"><Users className="w-6 h-6"/></Button></TooltipTrigger>
+                <TooltipTrigger asChild><Button variant="outline" size="lg" onClick={handleUseAudience} disabled={!lifelines.audience || !canUseLifeline} className="disabled:opacity-40 w-16 h-16 rounded-full"><Users className="w-8 h-8"/></Button></TooltipTrigger>
                 <TooltipContent><p>Placas: Mostra a opinião da plateia.</p></TooltipContent>
               </Tooltip>
               <Tooltip>
-                <TooltipTrigger asChild><Button variant="outline" size="lg" onClick={handleUseExperts} disabled={!lifelines.experts || !canUseLifeline} className="disabled:opacity-40"><GraduationCap className="w-6 h-6"/></Button></TooltipTrigger>
+                <TooltipTrigger asChild><Button variant="outline" size="lg" onClick={handleUseExperts} disabled={!lifelines.experts || !canUseLifeline} className="disabled:opacity-40 w-16 h-16 rounded-full"><GraduationCap className="w-8 h-8"/></Button></TooltipTrigger>
                 <TooltipContent><p>Convidados: Pede ajuda aos universitários.</p></TooltipContent>
               </Tooltip>
               <Tooltip>
-                <TooltipTrigger asChild><Button variant="outline" size="lg" onClick={handleUseSkip} disabled={lifelines.skip === 0 || !canUseLifeline} className="disabled:opacity-40"><SkipForward className="w-6 h-6"/> ({lifelines.skip})</Button></TooltipTrigger>
+                <TooltipTrigger asChild><Button variant="outline" size="lg" onClick={handleUseSkip} disabled={lifelines.skip === 0 || !canUseLifeline} className="disabled:opacity-40 w-16 h-16 rounded-full"><SkipForward className="w-8 h-8"/> ({lifelines.skip})</Button></TooltipTrigger>
                 <TooltipContent><p>Pular: Pula para a próxima pergunta.</p></TooltipContent>
               </Tooltip>
             </div>
@@ -314,17 +322,18 @@ export default function GameClient() {
                 return (
                   <Button
                     key={key}
-                    variant="outline"
                     className={cn(
-                      "justify-start h-auto p-4 text-lg whitespace-normal text-left bg-card hover:bg-primary/20 border-primary/40 disabled:opacity-100",
-                      selectedAnswer && isCorrect && "bg-green-200 border-green-500 text-green-900 animate-pulse",
-                      selectedAnswer && isSelected && !isCorrect && "bg-red-200 border-red-500 text-red-900",
-                      isDisabled && "opacity-50 !bg-muted/50 cursor-not-allowed",
+                      "justify-start h-auto p-4 text-lg font-semibold whitespace-normal text-left shadow-md border-b-4 transform hover:-translate-y-1 transition-all",
+                      !selectedAnswer && answerButtonColors[key],
+                      selectedAnswer && isCorrect && 'bg-green-400 border-green-600 text-white animate-pulse',
+                      selectedAnswer && isSelected && !isCorrect && 'bg-red-400 border-red-600 text-white',
+                      selectedAnswer && !isSelected && !isCorrect && 'opacity-50',
+                      isDisabled && "opacity-40 !bg-gray-300 cursor-not-allowed border-gray-400",
                     )}
                     onClick={() => handleAnswer(key)}
                     disabled={selectedAnswer !== null || isProcessing || isDisabled}
                   >
-                    <span className="font-bold mr-3 text-primary-foreground">{key}:</span> {value}
+                    <span className="font-bold mr-3">{key}:</span> {value}
                   </Button>
                 );
               })}
@@ -332,7 +341,7 @@ export default function GameClient() {
 
             {selectedAnswer && (
               <Card className={cn(
-                  "text-center shadow-lg animate-fade-in border-2",
+                  "text-center shadow-lg animate-fade-in border-2 bg-card/80 backdrop-blur-sm",
                   answerStatus === 'correct' && 'border-green-500',
                   answerStatus === 'incorrect' && 'border-red-500',
               )}>
@@ -352,7 +361,7 @@ export default function GameClient() {
         <p className="text-center text-xs text-muted-foreground mt-4">*Este jogo é apenas para fins de entretenimento. Os valores são fictícios.</p>
       </aside>
        <AlertDialog open={dialogContent !== null} onOpenChange={() => setDialogContent(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-card/80 backdrop-blur-sm">
           {dialogContent === 'audience' && audienceData && (
             <>
               <AlertDialogHeader>
