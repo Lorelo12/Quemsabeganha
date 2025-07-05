@@ -568,27 +568,13 @@ export default function GameClient() {
                     </Button>
                     <div className="mt-4 text-center text-sm text-white/70">
                         <p>Para seu nome aparecer no ranking...</p>
-                         <TooltipProvider>
-                          <Tooltip>
-                              <TooltipTrigger asChild>
-                                  <div className="inline-block"> {/* Wrapper div for disabled button tooltip */}
-                                      <Button
-                                          variant="link"
-                                          className="text-secondary p-0 h-auto text-sm"
-                                          onClick={() => setAuthView('login')}
-                                          disabled={!auth}
-                                      >
-                                          Crie uma conta ou faça login &rarr;
-                                      </Button>
-                                  </div>
-                              </TooltipTrigger>
-                              {!auth && (
-                                  <TooltipContent>
-                                      <p>Configure o Firebase no .env para habilitar o login.</p>
-                                  </TooltipContent>
-                              )}
-                          </Tooltip>
-                        </TooltipProvider>
+                        <Button
+                            variant="link"
+                            className="text-secondary p-0 h-auto text-sm"
+                            onClick={() => setAuthView('login')}
+                        >
+                            Crie uma conta ou faça login &rarr;
+                        </Button>
                     </div>
                 </>
                 ) : (
@@ -651,27 +637,13 @@ export default function GameClient() {
             </Card>
 
             <div className="flex flex-wrap justify-center gap-4 mt-4">
-                 <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div className="inline-block">
-                                <Button
-                                    variant="ghost"
-                                    className="text-secondary/80 hover:text-secondary"
-                                    onClick={() => { setInfoDialog('ranking'); fetchLeaderboard(); }}
-                                    disabled={!supabase}
-                                >
-                                    <BarChart2 className="mr-2"/> Ranking
-                                </Button>
-                            </div>
-                        </TooltipTrigger>
-                        {!supabase && (
-                            <TooltipContent>
-                                <p>Configure o Supabase no .env para habilitar o ranking.</p>
-                            </TooltipContent>
-                        )}
-                    </Tooltip>
-                </TooltipProvider>
+                <Button
+                    variant="ghost"
+                    className="text-secondary/80 hover:text-secondary"
+                    onClick={() => { setInfoDialog('ranking'); fetchLeaderboard(); }}
+                >
+                    <BarChart2 className="mr-2"/> Ranking
+                </Button>
                 <Button variant="ghost" className="text-secondary/80 hover:text-secondary" onClick={() => setInfoDialog('ajuda')}>
                     <Lightbulb className="mr-2"/> Ajuda
                 </Button>
