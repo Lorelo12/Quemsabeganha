@@ -10,6 +10,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, A
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 
 import { useToast } from '@/hooks/use-toast';
 import { PRIZE_TIERS } from '@/lib/questions';
@@ -37,6 +38,7 @@ const answerButtonColors: { [key: string]: { gradient: string } } = {
 
 export default function GameClient() {
   const [gameState, setGameState] = useState<GameState>('name_input');
+  const [playerName, setPlayerName] = useState('');
   const [askedQuestions, setAskedQuestions] = useState<string[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -99,6 +101,19 @@ export default function GameClient() {
     resetLifelines();
     fetchQuestion(0);
   }, [fetchQuestion]);
+  
+  const handleStartGame = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!playerName.trim()) {
+        toast({
+            title: "Nome é obrigatório",
+            description: "Por favor, digite seu nome para começar.",
+            variant: "destructive",
+        });
+        return;
+    }
+    startGame();
+  };
 
   useEffect(() => {
     if (!hostResponse || answerStatus === 'unanswered') return;
@@ -137,7 +152,7 @@ export default function GameClient() {
     const prizeOnFailure = lastCheckpointIndex !== -1 ? PRIZE_TIERS[lastCheckpointIndex].amount : 0;
 
     try {
-      const res = await gameShowHost({ playerName: "Jogador(a)", question: currentQuestion.question, answer: answerKey, isCorrect: isCorrect, currentPrize: nextPrize, prizeOnFailure: prizeOnFailure });
+      const res = await gameShowHost({ playerName: playerName || "Jogador(a)", question: currentQuestion.question, answer: answerKey, isCorrect: isCorrect, currentPrize: nextPrize, prizeOnFailure: prizeOnFailure });
       setHostResponse(res.response);
     } catch (error) {
       console.error(error);
@@ -147,6 +162,7 @@ export default function GameClient() {
 
   const restartGame = () => {
     setGameState('name_input');
+    setPlayerName('');
     setAskedQuestions([]);
     setCurrentQuestion(null);
     setCurrentQuestionIndex(0);
@@ -323,12 +339,22 @@ export default function GameClient() {
               O clássico Show do Milhão brasileiro com elegância!<br/>Responda 16 perguntas e ganhe R$ 1.000.000!
             </p>
             
-            <PrizeTable />
+            <form onSubmit={handleStartGame} className="w-full max-w-sm flex flex-col items-center gap-4">
+              <Input 
+                type="text"
+                placeholder="Digite seu nome para o ranking"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                className="h-auto bg-black/30 border-primary/50 p-4 text-center text-lg"
+                required
+              />
+              <Button type="submit" size="lg" className="text-2xl font-bold px-12 py-8 rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-lg shadow-secondary/50 border-2 border-white/30 animate-pulse-slow w-full">
+                <Gem className="mr-4 h-8 w-8 text-accent"/>
+                COMEÇAR O JOGO
+              </Button>
+            </form>
 
-            <Button onClick={startGame} size="lg" className="text-2xl font-bold px-12 py-8 rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-lg shadow-secondary/50 border-2 border-white/30 animate-pulse-slow">
-              <Gem className="mr-4 h-8 w-8 text-accent"/>
-              COMEÇAR O JOGO
-            </Button>
+            <PrizeTable />
 
             <div className="flex flex-wrap justify-center gap-4 mt-4">
                 <Button variant="ghost" className="text-secondary/80 hover:text-secondary" onClick={() => setInfoDialog('ranking')}>
@@ -366,7 +392,7 @@ export default function GameClient() {
             <Crown className="h-24 w-24 text-secondary animate-pulse-slow" style={{ filter: 'drop-shadow(0 0 15px hsl(var(--secondary)))' }}/>
             <h1 className="text-4xl md:text-6xl font-black mt-4 text-shadow-neon-yellow">Fim de Jogo!</h1>
             <p className="text-2xl mt-4 text-white/80">
-              {isWinner ? `Parabéns!` : `Que pena!`}
+              {isWinner ? `Parabéns, ${playerName || 'Jogador(a)'}!` : `Que pena, ${playerName || 'Jogador(a)'}!`}
             </p>
             <p className="max-w-xl text-lg text-white/80 my-8">
               {isWinner 
@@ -463,7 +489,7 @@ export default function GameClient() {
                       <p className="text-sm text-white/80">O ranking ainda está em construção, mas aqui estão nossos maiores vencedores até agora!</p>
                       <ol className="list-none space-y-3">
                         <li className="flex items-center justify-between p-2 bg-black/30 rounded-md">
-                          <span>👑 Jogador(a) Top 1</span>
+                          <span>👑 {playerName || 'Jogador(a) Top 1'}</span>
                           <span className="font-bold text-secondary">R$ 1.000.000</span>
                         </li>
                         <li className="flex items-center justify-between p-2 bg-black/30 rounded-md">
