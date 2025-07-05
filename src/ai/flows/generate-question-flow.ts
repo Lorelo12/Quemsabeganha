@@ -25,23 +25,32 @@ const prompt = ai.definePrompt({
     name: 'generateQuestionPrompt',
     input: { schema: GenerateQuestionInputSchema },
     output: { schema: QuestionSchema },
-    prompt: `Você é um especialista em criar perguntas para um game show de curiosidades, seguindo o estilo do "Show do Milhão". Sua missão é criar uma experiência justa, desafiadora e imprevisível.
+    prompt: `Você é o roteirista principal e gerador de perguntas para o game show "Quiz Milionário". Sua responsabilidade é criar perguntas de alta qualidade que sejam desafiadoras, justas, e sempre novas.
 
-Sua tarefa é gerar uma nova pergunta de múltipla escolha (com 4 opções: A, B, C, D) com base nos seguintes critérios:
+**Sua Tarefa:**
+Gerar UMA pergunta de múltipla escolha com 4 alternativas (A, B, C, D) e apenas UMA resposta correta.
 
-1.  **Aderência Estrita à Dificuldade:** Este é o critério MAIS IMPORTANTE. A dificuldade da pergunta DEVE corresponder estritamente ao nível solicitado. É fundamental que a progressão da dificuldade seja sentida pelo jogador. Siga esta escala rigorosamente:
-    - **Níveis 1-5 (Iniciante):** Perguntas de conhecimento geral muito comuns, que a grande maioria da população adulta saberia responder. Ex: "Qual a capital do Brasil?".
-    - **Níveis 6-10 (Intermediário):** Perguntas que exigem um conhecimento um pouco mais aprofundado, mas ainda sobre temas conhecidos. Ex: "Quem escreveu 'Dom Quixote'?".
-    - **Níveis 11-15 (Avançado):** Perguntas bastante específicas, que exigem conhecimento de nicho ou acadêmico. Ex: "Qual o nome do processo de conversão de luz solar em energia pelas plantas?".
-    - **Nível 16 (Expert/Milhão):** Uma pergunta extremamente difícil e obscura, que apenas um verdadeiro especialista no assunto saberia. Deve ser um desafio à altura do prêmio máximo.
+**Regras Essenciais:**
 
-2.  **Criatividade e Variedade:** Evite perguntas clichês. A cada chamada, gere uma pergunta nova e diferente, variando os temas (história, geografia, ciências, cultura pop, artes, etc.). A aleatoriedade é essencial.
+1.  **Nível de Dificuldade Preciso:** A dificuldade da pergunta deve corresponder EXATAMENTE ao nível solicitado. A progressão é a chave da emoção do jogo.
+    *   **Níveis 1-5 (Fácil):** Conhecimento geral básico. Perguntas que a maioria dos adultos saberia. (Ex: "Qual oceano banha a costa leste do Brasil?")
+    *   **Níveis 6-10 (Médio):** Temas conhecidos, mas que exigem um pouco mais de detalhe. (Ex: "Qual pintor é famoso por sua obra 'Guernica'?")
+    *   **Níveis 11-16 (Difícil):** Conhecimento específico, acadêmico ou de nicho. (Ex: "Qual foi o primeiro elemento químico a ser descoberto artificialmente?")
 
-3.  **Originalidade (Anti-Repetição):** A pergunta gerada não pode ser uma das perguntas da lista de "Perguntas Anteriores" abaixo. Verifique cuidadosamente esta lista.
+2.  **Aleatoriedade e Variedade MÁXIMA:**
+    *   **Temas Diversificados:** Varie os temas a cada pergunta: história, geografia, ciências, cultura pop, artes, esportes, etc. Não foque em apenas uma área.
+    *   **Sempre Original:** A pergunta deve ser diferente a cada nova partida. NUNCA repita clichês ou perguntas óbvias.
 
-4.  **Exclusividade da Resposta:** É crucial que **apenas UMA** das quatro opções seja a resposta correta. As outras três devem ser incorretas, mas plausíveis (distratores). Evite ambiguidades.
+3.  **Evitar Repetição (Regra Crítica):** A pergunta gerada NÃO PODE estar na lista de "Perguntas Anteriores" fornecida abaixo. Verifique esta lista com atenção.
 
-5.  **Formato:** A resposta deve ser um objeto JSON com os campos "question", "options" (um objeto com chaves A, B, C, D) e "correctAnswerKey".
+4.  **Resposta Única e Incontestável:**
+    *   **Apenas UMA** opção pode ser a correta.
+    *   As outras três opções (distratores) devem ser incorretas, mas plausíveis o suficiente para criar dúvida.
+    *   Evite ambiguidades ou perguntas com múltiplas interpretações.
+
+5.  **Qualidade do Conteúdo:**
+    *   **Evite perguntas datadas:** Não use perguntas que dependam do tempo (Ex: "Quem é o atual presidente...?").
+    *   **Evite regionalismos extremos:** As perguntas devem ser compreensíveis para um público de língua portuguesa em geral.
 
 ---
 **Nível de Dificuldade Solicitado:** {{{difficulty}}}
@@ -56,7 +65,7 @@ Nenhuma.
 {{/if}}
 ---
 
-Gere a próxima pergunta. Seja criativo e siga a escala de dificuldade à risca!`,
+Gere a próxima pergunta seguindo todas as regras à risca.`,
 });
 
 const generateQuestionFlow = ai.defineFlow(
