@@ -9,12 +9,13 @@ import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
+import { Textarea } from '@/components/ui/textarea';
 
 import { useToast } from '@/hooks/use-toast';
 import { PRIZE_TIERS } from '@/lib/questions';
 import type { Question, LifelineState } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Loader2, Crown, Layers, Users, GraduationCap, SkipForward, CircleDollarSign, Gem, BarChart2, Lightbulb, Info, Trophy } from 'lucide-react';
+import { Loader2, Crown, Layers, Users, GraduationCap, SkipForward, CircleDollarSign, Gem, BarChart2, Lightbulb, Info, Trophy, MessageSquarePlus } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { Logo } from './logo';
 import { Card } from './ui/card';
@@ -22,7 +23,7 @@ import { PrizeTable } from './prize-table';
 
 type GameState = 'name_input' | 'playing' | 'game_over';
 type AnswerStatus = 'unanswered' | 'correct' | 'incorrect';
-type InfoDialog = 'ranking' | 'ajuda' | 'creditos';
+type InfoDialog = 'ranking' | 'ajuda' | 'creditos' | 'feedback';
 
 const TOTAL_QUESTIONS = 16;
 
@@ -56,6 +57,7 @@ export default function GameClient() {
   const [infoDialog, setInfoDialog] = useState<InfoDialog | null>(null);
   const [audienceData, setAudienceData] = useState<AudiencePollOutput | null>(null);
   const [expertsData, setExpertsData] = useState<ExpertsOpinionOutput | null>(null);
+  const [feedbackText, setFeedbackText] = useState('');
 
   const resetLifelines = () => {
     setLifelines({ skip: 3, cards: true, audience: true, experts: true });
@@ -204,6 +206,28 @@ export default function GameClient() {
       }
     }
   };
+
+  const handleFeedbackSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!feedbackText.trim()) {
+      toast({
+        title: "Campo Vazio",
+        description: "Por favor, escreva seu feedback antes de enviar.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    console.log("Feedback submitted:", feedbackText);
+
+    setInfoDialog(null);
+    setFeedbackText('');
+    
+    toast({
+      title: "Feedback Enviado!",
+      description: "Obrigado pela sua contribuição. Sua opinião é muito importante!",
+    });
+  };
   
   const renderGameScreen = () => {
      if (isProcessing && !currentQuestion && !hostResponse) {
@@ -306,7 +330,7 @@ export default function GameClient() {
               COMEÇAR O JOGO
             </Button>
 
-            <div className="flex gap-4 mt-4">
+            <div className="flex flex-wrap justify-center gap-4 mt-4">
                 <Button variant="ghost" className="text-secondary/80 hover:text-secondary" onClick={() => setInfoDialog('ranking')}>
                     <BarChart2 className="mr-2"/> Ranking
                 </Button>
@@ -315,6 +339,9 @@ export default function GameClient() {
                 </Button>
                 <Button variant="ghost" className="text-secondary/80 hover:text-secondary" onClick={() => setInfoDialog('creditos')}>
                     <Info className="mr-2"/> Créditos
+                </Button>
+                <Button variant="ghost" className="text-secondary/80 hover:text-secondary" onClick={() => setInfoDialog('feedback')}>
+                    <MessageSquarePlus className="mr-2"/> Feedback
                 </Button>
             </div>
           </div>
@@ -426,80 +453,113 @@ export default function GameClient() {
               {infoDialog === 'ranking' && <><Trophy /> Ranking dos Milionários</>}
               {infoDialog === 'ajuda' && <><Lightbulb /> Como Jogar</>}
               {infoDialog === 'creditos' && <><Info /> Créditos</>}
+              {infoDialog === 'feedback' && <><MessageSquarePlus /> Feedback & Sugestões</>}
             </DialogTitle>
             <DialogDescription asChild>
               <div>
                 {infoDialog === 'ranking' && (
-                  <div className="space-y-4 pt-4 text-left">
-                    <p className="text-sm text-white/80">O ranking ainda está em construção, mas aqui estão nossos maiores vencedores até agora!</p>
-                    <ol className="list-none space-y-3">
-                      <li className="flex items-center justify-between p-2 bg-black/30 rounded-md">
-                        <span>👑 Jogador(a) Top 1</span>
-                        <span className="font-bold text-secondary">R$ 1.000.000</span>
-                      </li>
-                      <li className="flex items-center justify-between p-2 bg-black/30 rounded-md">
-                        <span>🥈 Jogador(a) Top 2</span>
-                        <span className="font-bold text-secondary">R$ 500.000</span>
-                      </li>
-                      <li className="flex items-center justify-between p-2 bg-black/30 rounded-md">
-                        <span>🥉 Jogador(a) Top 3</span>
-                        <span className="font-bold text-secondary">R$ 300.000</span>
-                      </li>
-                    </ol>
-                  </div>
+                  <>
+                    <div className="space-y-4 pt-4 text-left">
+                      <p className="text-sm text-white/80">O ranking ainda está em construção, mas aqui estão nossos maiores vencedores até agora!</p>
+                      <ol className="list-none space-y-3">
+                        <li className="flex items-center justify-between p-2 bg-black/30 rounded-md">
+                          <span>👑 Jogador(a) Top 1</span>
+                          <span className="font-bold text-secondary">R$ 1.000.000</span>
+                        </li>
+                        <li className="flex items-center justify-between p-2 bg-black/30 rounded-md">
+                          <span>🥈 Jogador(a) Top 2</span>
+                          <span className="font-bold text-secondary">R$ 500.000</span>
+                        </li>
+                        <li className="flex items-center justify-between p-2 bg-black/30 rounded-md">
+                          <span>🥉 Jogador(a) Top 3</span>
+                          <span className="font-bold text-secondary">R$ 300.000</span>
+                        </li>
+                      </ol>
+                    </div>
+                    <DialogFooter className="!mt-4 sm:!justify-end">
+                        <DialogClose asChild><Button>Fechar</Button></DialogClose>
+                    </DialogFooter>
+                  </>
                 )}
                 {infoDialog === 'ajuda' && (
-                  <div className="space-y-4 pt-4 text-left text-white/90 max-h-[60vh] overflow-y-auto pr-2">
-                      <p>O objetivo é simples: responda a 16 perguntas de conhecimentos gerais para ganhar o prêmio máximo de R$ 1.000.000!</p>
-                      
-                      <div>
-                          <h3 className="font-bold text-primary mb-2">Ajudas Disponíveis:</h3>
-                          <ul className="space-y-1 list-disc list-inside">
-                              <li><strong className="text-secondary">Pular:</strong> Você tem 3 chances de pular uma pergunta que não sabe.</li>
-                              <li><strong className="text-primary">Convidados:</strong> Pede a opinião de três especialistas fictícios.</li>
-                              <li><strong className="text-cyan-400">Cartas:</strong> Remove duas respostas incorretas da tela.</li>
-                              <li><strong className="text-orange-400">Platéia:</strong> Mostra a porcentagem de votos da plateia para cada opção.</li>
-                          </ul>
-                      </div>
-                  
-                      <div>
-                          <h3 className="font-bold text-primary mb-2">Regras de Premiação:</h3>
-                          <ul className="space-y-1 list-disc list-inside">
-                              <li>A cada resposta correta, você avança para o próximo nível de prêmio.</li>
-                              <li>Existem dois <strong className="text-secondary">checkpoints seguros</strong>: na pergunta 5 (R$ 5.000) e na pergunta 10 (R$ 50.000).</li>
-                              <li>Se errar, você leva para casa o valor do último checkpoint que alcançou. Se errar antes do primeiro checkpoint, o prêmio é R$ 0.</li>
-                          </ul>
-                      </div>
-                      <p className="text-center font-bold pt-4">Boa sorte! 🍀</p>
-                  </div>
+                  <>
+                    <div className="space-y-4 pt-4 text-left text-white/90 max-h-[60vh] overflow-y-auto pr-2">
+                        <p>O objetivo é simples: responda a 16 perguntas de conhecimentos gerais para ganhar o prêmio máximo de R$ 1.000.000!</p>
+                        
+                        <div>
+                            <h3 className="font-bold text-primary mb-2">Ajudas Disponíveis:</h3>
+                            <ul className="space-y-1 list-disc list-inside">
+                                <li><strong className="text-secondary">Pular:</strong> Você tem 3 chances de pular uma pergunta que não sabe.</li>
+                                <li><strong className="text-primary">Convidados:</strong> Pede a opinião de três especialistas fictícios.</li>
+                                <li><strong className="text-cyan-400">Cartas:</strong> Remove duas respostas incorretas da tela.</li>
+                                <li><strong className="text-orange-400">Platéia:</strong> Mostra a porcentagem de votos da plateia para cada opção.</li>
+                            </ul>
+                        </div>
+                    
+                        <div>
+                            <h3 className="font-bold text-primary mb-2">Regras de Premiação:</h3>
+                            <ul className="space-y-1 list-disc list-inside">
+                                <li>A cada resposta correta, você avança para o próximo nível de prêmio.</li>
+                                <li>Existem dois <strong className="text-secondary">checkpoints seguros</strong>: na pergunta 5 (R$ 5.000) e na pergunta 10 (R$ 50.000).</li>
+                                <li>Se errar, você leva para casa o valor do último checkpoint que alcançou. Se errar antes do primeiro checkpoint, o prêmio é R$ 0.</li>
+                            </ul>
+                        </div>
+                        <p className="text-center font-bold pt-4">Boa sorte! 🍀</p>
+                    </div>
+                     <DialogFooter className="!mt-4 sm:!justify-end">
+                        <DialogClose asChild><Button>Fechar</Button></DialogClose>
+                    </DialogFooter>
+                  </>
                 )}
                 {infoDialog === 'creditos' && (
-                  <div className="space-y-4 pt-4 text-left text-white/90">
-                      <p>Este jogo é uma homenagem ao clássico "Show do Milhão" e foi desenvolvido como uma demonstração das capacidades da IA generativa.</p>
-                      
-                      <div className="text-center py-2">
-                          <p>Desenvolvido com 💖 por</p>
-                          <p className="font-bold text-lg text-primary text-shadow-neon-pink">Firebase Studio</p>
-                      </div>
-                  
-                      <div>
-                          <h3 className="font-bold text-secondary mb-2">Tecnologias Utilizadas:</h3>
-                          <ul className="space-y-1 list-disc list-inside">
-                              <li>Next.js & React</li>
-                              <li>Tailwind CSS & ShadCN UI</li>
-                              <li>Genkit & Google Gemini</li>
-                          </ul>
-                      </div>
-                  </div>
+                  <>
+                    <div className="space-y-4 pt-4 text-left text-white/90">
+                        <p>Este jogo é uma homenagem ao clássico "Show do Milhão" e foi desenvolvido como uma demonstração das capacidades da IA generativa.</p>
+                        
+                        <div className="text-center py-2">
+                            <p>Desenvolvido com 💖 por</p>
+                            <p className="font-bold text-lg text-primary text-shadow-neon-pink">Firebase Studio</p>
+                        </div>
+                    
+                        <div>
+                            <h3 className="font-bold text-secondary mb-2">Tecnologias Utilizadas:</h3>
+                            <ul className="space-y-1 list-disc list-inside">
+                                <li>Next.js & React</li>
+                                <li>Tailwind CSS & ShadCN UI</li>
+                                <li>Genkit & Google Gemini</li>
+                            </ul>
+                        </div>
+                    </div>
+                     <DialogFooter className="!mt-4 sm:!justify-end">
+                        <DialogClose asChild><Button>Fechar</Button></DialogClose>
+                    </DialogFooter>
+                  </>
+                )}
+                 {infoDialog === 'feedback' && (
+                  <form onSubmit={handleFeedbackSubmit} className="space-y-4 pt-4 text-left">
+                      <p className="text-sm text-white/80">
+                        Encontrou um bug ou tem uma ideia para melhorar o jogo? Nós adoraríamos ouvir!
+                      </p>
+                      <Textarea
+                        name="feedback"
+                        placeholder="Digite seu feedback aqui..."
+                        className="bg-black/30 border-primary/50 text-white"
+                        rows={5}
+                        value={feedbackText}
+                        onChange={(e) => setFeedbackText(e.target.value)}
+                        required
+                      />
+                      <DialogFooter className="!mt-4 sm:!justify-end">
+                        <DialogClose asChild>
+                          <Button type="button" variant="ghost">Cancelar</Button>
+                        </DialogClose>
+                        <Button type="submit">Enviar</Button>
+                      </DialogFooter>
+                  </form>
                 )}
               </div>
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button>Fechar</Button>
-            </DialogClose>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
