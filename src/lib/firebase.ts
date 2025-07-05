@@ -12,16 +12,18 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
+export const isFirebaseConfigured = !!(
+  firebaseConfig.apiKey &&
+  firebaseConfig.authDomain &&
+  firebaseConfig.projectId
+);
+
 // Initialize Firebase
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 
 // Check that all required Firebase environment variables are set before initializing
-if (
-  firebaseConfig.apiKey &&
-  firebaseConfig.authDomain &&
-  firebaseConfig.projectId
-) {
+if (isFirebaseConfigured) {
   try {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
@@ -32,7 +34,7 @@ if (
     auth = null;
   }
 } else {
-    // The game client will show a user-friendly tooltip if Firebase isn't configured.
+    // The game client will show a user-friendly alert if Firebase isn't configured.
     // No need for a console warning here that might confuse the user.
 }
 

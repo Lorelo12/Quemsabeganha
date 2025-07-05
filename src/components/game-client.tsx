@@ -4,7 +4,7 @@ import { gameShowHost } from '@/ai/flows/game-show-host';
 import { generateQuiz } from '@/ai/flows/generate-quiz-flow';
 import { getAudiencePoll, type AudiencePollOutput } from '@/ai/flows/audience-poll-flow';
 import { getExpertsOpinion, type ExpertsOpinionOutput } from '@/ai/flows/experts-opinion-flow';
-import { auth } from '@/lib/firebase';
+import { auth, isFirebaseConfigured } from '@/lib/firebase';
 import { supabase } from '@/lib/supabase';
 import { 
   createUserWithEmailAndPassword, 
@@ -137,17 +137,7 @@ export default function GameClient() {
 
   const handleStartGame = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isProcessing || !isAiConfigured) return;
-    
-    if (!auth) {
-      toast({
-        title: "Firebase não configurado",
-        description: "Adicione as chaves do Firebase ao seu arquivo .env para habilitar a autenticação.",
-        variant: "destructive",
-        duration: 9000,
-      });
-      return;
-    }
+    if (isProcessing || !isAiConfigured || !isFirebaseConfigured) return;
     
     setIsProcessing(true);
 
@@ -158,7 +148,7 @@ export default function GameClient() {
         return;
       }
       try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth!, email, password);
         if (userCredential.user) {
           await updateProfile(userCredential.user, { displayName: playerName });
           setPlayerName(playerName);
@@ -184,7 +174,7 @@ export default function GameClient() {
         return;
       }
       try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const userCredential = await signInWithEmailAndPassword(auth!, email, password);
         setPlayerName(userCredential.user.displayName || 'Jogador(a)');
         toast({ title: "Login realizado com sucesso!", description: "Bem-vindo(a) de volta!" });
         startGame();
@@ -579,6 +569,15 @@ export default function GameClient() {
                 </>
                 ) : (
                 <>
+                    {!isFirebaseConfigured && (
+                      <Alert variant="destructive" className="mb-4 text-left">
+                          <AlertTriangle className="h-4 w-4" />
+                          <AlertTitle>Login/Cadastro Desabilitado</AlertTitle>
+                          <AlertDescription>
+                              As chaves do Firebase não foram configuradas no arquivo <strong>.env</strong>. Por favor, jogue como convidado.
+                          </AlertDescription>
+                      </Alert>
+                    )}
                     <Tabs value={authTab} onValueChange={(value) => setAuthTab(value as any)} className="w-full">
                         <TabsList className="grid w-full grid-cols-2 bg-muted/50">
                             <TabsTrigger value="signup">Criar Conta</TabsTrigger>
@@ -602,7 +601,7 @@ export default function GameClient() {
                                     <Label htmlFor="password-signup" className="text-white/80">Senha</Label>
                                     <Input id="password-signup" type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} required className="bg-black/30"/>
                                 </div>
-                                <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg" disabled={isProcessing || !isAiConfigured}>
+                                <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg" disabled={isProcessing || !isAiConfigured || !isFirebaseConfigured}>
                                     {isProcessing ? <Loader2 className="animate-spin" /> : <><Gem className="mr-2"/>Criar e Jogar</>}
                                 </Button>
                             </form>
@@ -621,7 +620,7 @@ export default function GameClient() {
                                     <Label htmlFor="password-login" className="text-white/80">Senha</Label>
                                     <Input id="password-login" type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} required className="bg-black/30"/>
                                 </div>
-                                <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg" disabled={isProcessing || !isAiConfigured}>
+                                <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg" disabled={isProcessing || !isAiConfigured || !isFirebaseConfigured}>
                                     {isProcessing ? <Loader2 className="animate-spin" /> : "Entrar e Jogar"}
                                 </Button>
                             </form>
