@@ -125,13 +125,11 @@ export default function GameClient() {
 
     const nextPrize = PRIZE_TIERS[currentQuestionIndex].amount;
     
-    // Find the last checkpoint the player has passed
-    const passedTiers = [...PRIZE_TIERS].slice(0, currentQuestionIndex);
-    const lastCheckpoint = passedTiers.filter(p => p.isCheckpoint).pop();
-    const checkpointPrize = lastCheckpoint ? lastCheckpoint.amount : 0;
+    // If the player is wrong, they win the prize of the last question they answered correctly.
+    const prizeOnFailure = currentQuestionIndex > 0 ? PRIZE_TIERS[currentQuestionIndex - 1].amount : 0;
 
     try {
-      const res = await gameShowHost({ playerName: "Jogador(a)", question: currentQuestion.question, answer: answerKey, isCorrect: isCorrect, currentPrize: nextPrize, checkpoint: checkpointPrize });
+      const res = await gameShowHost({ playerName: "Jogador(a)", question: currentQuestion.question, answer: answerKey, isCorrect: isCorrect, currentPrize: nextPrize, prizeOnFailure: prizeOnFailure });
       setHostResponse(res.response);
     } catch (error) {
       console.error(error);
@@ -322,10 +320,9 @@ export default function GameClient() {
         if (isWinner) {
           prizeWon = PRIZE_TIERS[TOTAL_QUESTIONS - 1].amount;
         } else {
-          // Player lost, find the last checkpoint they passed
-          const passedTiers = [...PRIZE_TIERS].slice(0, currentQuestionIndex);
-          const lastCheckpoint = passedTiers.filter(p => p.isCheckpoint).pop();
-          prizeWon = lastCheckpoint ? lastCheckpoint.amount : 0;
+          // Player lost. They win the prize of the last question they answered correctly.
+          const lastCorrectIndex = currentQuestionIndex - 1;
+          prizeWon = lastCorrectIndex >= 0 ? PRIZE_TIERS[lastCorrectIndex].amount : 0;
         }
         
         return (
@@ -338,7 +335,7 @@ export default function GameClient() {
             <p className="max-w-xl text-lg text-white/80 my-8">
               {isWinner 
                 ? `Você é a nova milionária do nosso quiz! Você ganhou o prêmio máximo de R$ ${prizeWon.toLocaleString('pt-BR')},00! 👑`
-                : `Você leva para casa o prêmio garantido de R$ ${prizeWon.toLocaleString('pt-BR')},00.`
+                : `Você leva para casa o prêmio de R$ ${prizeWon.toLocaleString('pt-BR')},00.`
               }
             </p>
              <Button onClick={restartGame} size="lg" className="animate-pulse-slow text-xl font-bold px-12 py-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/50 border-2 border-white/30">

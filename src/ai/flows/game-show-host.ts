@@ -18,7 +18,7 @@ const GameShowHostInputSchema = z.object({
   answer: z.string().describe("The player's answer (A, B, C, or D)."),
   isCorrect: z.boolean().describe("Whether the player's answer is correct."),
   currentPrize: z.number().describe('The prize amount for the current question if answered correctly.'),
-  checkpoint: z.number().describe('The prize amount of the last checkpoint reached.'),
+  prizeOnFailure: z.number().describe('The prize amount the player takes home if they answer incorrectly (the value of the last correctly answered question).'),
 });
 export type GameShowHostInput = z.infer<typeof GameShowHostInputSchema>;
 
@@ -44,7 +44,7 @@ Seu papel é guiar o jogador (apenas uma pessoa por vez) por 16 perguntas de mú
 - Apresente cada pergunta com clareza e charme.
 - Após o jogador responder (ex: “B”), confirme se a resposta está correta ou não.
    - Se estiver certa, comemore e informe o valor ganho.
-   - Se estiver errada, lamente, diga qual era a resposta correta e informe o prêmio que o jogador levará para casa com base no último checkpoint. Ex: "Que pena! A resposta correta era 'C'. Mas você mandou bem e leva para casa o prêmio garantido de R$ 50.000!"
+   - Se estiver errada, lamente, diga qual era a resposta correta e informe o prêmio que o jogador levará para casa (o valor da última pergunta que acertou, que é 'prizeOnFailure'). Ex: "Que pena! A resposta correta era 'C'. Mas você não sai de mãos abanando e leva para casa R$ 4.000!"
 - Incentive o jogador ao longo do caminho com frases suaves como: “Mandou bem!”, “Estamos na metade!”, “Valendo meio milhão!” etc.
 
 🧠 Detalhes técnicos:
@@ -84,7 +84,7 @@ Agora, use as seguintes informações para gerar uma resposta apropriada para o 
 - Resposta do Jogador: {{{answer}}}
 - A resposta está correta?: {{{isCorrect}}}
 - Prêmio em jogo (se acertar): R$ {{{currentPrize}}}
-- Prêmio garantido no último checkpoint: R$ {{{checkpoint}}}
+- Prêmio garantido (se errar): R$ {{{prizeOnFailure}}}
 
 Lembre-se: sua resposta deve ser apenas a fala da apresentadora, sem repetir os dados que você recebeu.`,
 });
