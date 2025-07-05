@@ -28,23 +28,27 @@ export async function generateQuiz(): Promise<Question[]> {
 const prompt = ai.definePrompt({
     name: 'generateQuizPrompt',
     output: { schema: GenerateQuizOutputSchema },
-    prompt: `Você é o roteirista principal e gerador de perguntas para o game show "Quiz Milionário". Sua responsabilidade é criar um quiz completo de 16 perguntas de alta qualidade.
+    prompt: `Você é o roteirista principal e gerador de perguntas para o game show "Quiz Milionário", inspirado no clássico "Show do Milhão". Sua responsabilidade é criar um quiz completo de 16 perguntas com uma curva de dificuldade muito específica.
 
 **Sua Tarefa:**
 Gerar 16 perguntas de múltipla escolha com 4 alternativas (A, B, C, D) e apenas UMA resposta correta para cada.
 
 **Regras Essenciais:**
 
-1.  **Dificuldade Crescente:** As perguntas devem começar muito fáceis e aumentar a dificuldade progressivamente. A pergunta 1 deve ser de conhecimento popular, enquanto a pergunta 16 deve ser extremamente difícil, para especialistas.
-2.  **Aleatoriedade e Variedade MÁXIMA:**
-    *   **Temas Diversificados:** Varie os temas entre as perguntas: história, geografia, ciências, cultura pop, artes, esportes, etc. Não foque em apenas uma área.
-    *   **Sempre Original:** As perguntas devem ser diferentes e não clichês.
+1.  **Curva de Dificuldade (Estilo Show do Milhão):** A dificuldade deve aumentar em blocos bem definidos. Siga esta estrutura rigorosamente:
+    *   **Perguntas 1 a 5 (Prêmio: R$ 1.000 a R$ 5.000):** MUITO FÁCEIS. Devem ser de conhecimento geral básico, que uma criança ou a grande maioria dos adultos saberia responder. (Ex: "Qual a cor do céu em um dia sem nuvens?").
+    *   **Perguntas 6 a 10 (Prêmio: R$ 10.000 a R$ 50.000):** FÁCEIS A MÉDIAS. Assuntos de conhecimento escolar, cultura geral e fatos conhecidos. (Ex: "Quem pintou a Mona Lisa?").
+    *   **Perguntas 11 a 15 (Prêmio: R$ 100.000 a R$ 500.000):** DIFÍCEIS. Exigem conhecimento mais específico em áreas como ciências, história, geografia, artes ou literatura. As alternativas devem ser plausíveis para confundir o jogador.
+    *   **Pergunta 16 (Prêmio: R$ 1.000.000):** PERGUNTA DO MILHÃO. Extremamente difícil e específica, sobre um detalhe pouco conhecido de um assunto complexo. A resposta não deve ser facilmente dedutível.
+
+2.  **Variedade de Temas:** Em cada bloco de dificuldade, varie os temas das perguntas (história, geografia, ciências, cultura pop, artes, esportes, etc.). Não repita o mesmo tema em perguntas seguidas.
+
 3.  **Formato de Saída OBRIGATÓRIO:**
     *   A saída DEVE ser um objeto JSON.
     *   O objeto principal deve ter uma chave "questions", que é um array de 16 objetos de pergunta.
     *   Cada objeto de pergunta deve ter EXATAMENTE as seguintes chaves: "question" (string), "options" (um objeto com chaves "A", "B", "C", "D"), e "correctAnswerKey" (uma string que seja "A", "B", "C", ou "D").
 
-Gere o conjunto completo de 16 perguntas agora, seguindo estritamente o formato JSON especificado.`,
+Gere o conjunto completo de 16 perguntas agora, seguindo estritamente a curva de dificuldade e o formato JSON especificado.`,
 });
 
 const generateQuizFlow = ai.defineFlow(
