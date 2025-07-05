@@ -18,3 +18,10 @@ export interface PrizeTier {
   label: string;
   isCheckpoint: boolean;
 }
+
+export interface LifelineState {
+  skip: number;
+  cards: boolean;
+  audience: boolean;
+  experts: boolean;
+}
