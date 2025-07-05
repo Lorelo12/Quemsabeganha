@@ -4,6 +4,13 @@ import { gameShowHost } from '@/ai/flows/game-show-host';
 import { generateQuestion } from '@/ai/flows/generate-question-flow';
 import { getAudiencePoll, type AudiencePollOutput } from '@/ai/flows/audience-poll-flow';
 import { getExpertsOpinion, type ExpertsOpinionOutput } from '@/ai/flows/experts-opinion-flow';
+import { auth } from '@/lib/firebase';
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  signOut,
+  updateProfile,
+} from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction } from '@/components/ui/alert-dialog';
@@ -109,40 +116,92 @@ export default function GameClient() {
     fetchQuestion(0);
   }, [fetchQuestion]);
   
-  const handleStartGame = (e: React.FormEvent) => {
+  const handleStartGame = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isProcessing) return;
+
+    if (!auth) {
+      toast({
+        title: "Firebase não configurado",
+        description: "Adicione as chaves do Firebase ao seu arquivo .env para habilitar a autenticação.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsProcessing(true);
+    
+    const currentDisplayName = authTab === 'login' 
+        ? auth.currentUser?.displayName || 'Jogador(a)'
+        : playerName;
+
     if (authTab === 'signup') {
-      if (!playerName.trim()) {
-        toast({
-          title: "Apelido é obrigatório",
-          description: "Por favor, digite seu apelido para o ranking.",
-          variant: "destructive",
-        });
+      if (!playerName.trim() || !email || !password) {
+        toast({ title: "Todos os campos são obrigatórios para criar a conta.", variant: "destructive" });
+        setIsProcessing(false);
         return;
+      }
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        if (userCredential.user) {
+          await updateProfile(userCredential.user, { displayName: playerName });
+          setPlayerName(playerName);
+          toast({ title: "Conta criada com sucesso!", description: "Começando o jogo..." });
+          startGame();
+        }
+      } catch (error: any) {
+        const errorCode = error.code;
+        let friendlyMessage = "Ocorreu um erro ao criar a conta.";
+        if (errorCode === 'auth/email-already-in-use') {
+          friendlyMessage = "Este e-mail já está em uso. Tente fazer login.";
+        } else if (errorCode === 'auth/weak-password') {
+          friendlyMessage = "A senha é muito fraca. Tente uma com pelo menos 6 caracteres.";
+        }
+        toast({ title: "Erro no Cadastro", description: friendlyMessage, variant: "destructive" });
+      } finally {
+        setIsProcessing(false);
       }
     } else { // authTab === 'login'
       if (!email || !password) {
-        toast({
-          title: "Campos obrigatórios",
-          description: "Por favor, digite seu e-mail e senha.",
-          variant: "destructive",
-        });
+        toast({ title: "Email e senha são obrigatórios.", variant: "destructive" });
+        setIsProcessing(false);
         return;
       }
-      // This is a mocked login. In a real app, you would validate credentials
-      // and fetch user data from a database.
-      setPlayerName("Jogador(a)");
-      toast({
-          title: "Login realizado com sucesso!",
-          description: "Bem-vindo(a) de volta!",
-      });
-    }
-    
-    // Using a short timeout to ensure the state updates before starting the game
-    setTimeout(() => {
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        setPlayerName(userCredential.user.displayName || 'Jogador(a)');
+        toast({ title: "Login realizado com sucesso!", description: "Bem-vindo(a) de volta!" });
         startGame();
-    }, 100);
+      } catch (error: any) {
+        const errorCode = error.code;
+        let friendlyMessage = "Ocorreu um erro ao fazer login.";
+        if (errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password' || errorCode === 'auth/invalid-credential') {
+            friendlyMessage = "Email ou senha incorretos.";
+        }
+        toast({ title: "Erro no Login", description: friendlyMessage, variant: "destructive" });
+      } finally {
+        setIsProcessing(false);
+      }
+    }
   };
+
+  const handleLogout = async () => {
+    if (isProcessing) return;
+    if (!auth) {
+      toast({ title: "Erro ao sair", description: "Configuração do Firebase não encontrada.", variant: "destructive" });
+      return;
+    }
+    setIsProcessing(true);
+    try {
+        await signOut(auth);
+        toast({ title: "Você saiu.", description: "Até a próxima!" });
+        restartGame();
+    } catch (error) {
+        toast({ title: "Erro ao sair", description: "Tente novamente.", variant: "destructive" });
+    } finally {
+        setIsProcessing(false);
+    }
+  }
 
   useEffect(() => {
     if (!hostResponse || answerStatus === 'unanswered') return;
@@ -395,7 +454,9 @@ export default function GameClient() {
                                 <Label htmlFor="password-signup" className="text-white/80">Senha</Label>
                                 <Input id="password-signup" type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} required className="bg-black/30"/>
                             </div>
-                            <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg"><Gem className="mr-2"/>Criar e Jogar</Button>
+                            <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg" disabled={isProcessing}>
+                                {isProcessing ? <Loader2 className="animate-spin" /> : <><Gem className="mr-2"/>Criar e Jogar</>}
+                            </Button>
                         </form>
                     </TabsContent>
                     <TabsContent value="login">
@@ -412,7 +473,9 @@ export default function GameClient() {
                                 <Label htmlFor="password-login" className="text-white/80">Senha</Label>
                                 <Input id="password-login" type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} required className="bg-black/30"/>
                             </div>
-                            <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg">Entrar e Jogar</Button>
+                            <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg" disabled={isProcessing}>
+                                {isProcessing ? <Loader2 className="animate-spin" /> : "Entrar e Jogar"}
+                            </Button>
                         </form>
                     </TabsContent>
                 </Tabs>
@@ -479,7 +542,12 @@ export default function GameClient() {
 
   return (
     <>
-      <div className="w-full max-w-4xl mx-auto p-4 md:p-6 rounded-3xl bg-black/30">
+      <div className="w-full max-w-4xl mx-auto p-4 md:p-6 rounded-3xl bg-black/30 relative">
+        {auth?.currentUser && (
+            <Button onClick={handleLogout} variant="ghost" className="absolute top-6 right-6 text-secondary z-20 hover:bg-primary/20 hover:text-secondary" disabled={isProcessing}>
+                {isProcessing ? <Loader2 className="animate-spin" /> : "Sair"}
+            </Button>
+        )}
         <div className="p-1 bg-gradient-to-br from-secondary via-primary to-accent rounded-2xl">
             <div className="bg-dark-bg p-6 rounded-xl min-h-[600px] flex items-center justify-center">
                 {renderContent()}
@@ -551,7 +619,7 @@ export default function GameClient() {
                       <p className="text-sm text-white/80">O ranking ainda está em construção, mas aqui estão nossos maiores vencedores até agora!</p>
                       <ol className="list-none space-y-3">
                         <li className="flex items-center justify-between p-2 bg-black/30 rounded-md">
-                          <span>👑 {playerName || 'Jogador(a) Top 1'}</span>
+                          <span>👑 {auth?.currentUser?.displayName || 'Jogador(a) Top 1'}</span>
                           <span className="font-bold text-secondary">R$ 1.000.000</span>
                         </li>
                         <li className="flex items-center justify-between p-2 bg-black/30 rounded-md">
@@ -615,6 +683,7 @@ export default function GameClient() {
                                 <li>Next.js & React</li>
                                 <li>Tailwind CSS & ShadCN UI</li>
                                 <li>Genkit & Google Gemini</li>
+                                <li>Firebase Authentication</li>
                             </ul>
                         </div>
                     </div>

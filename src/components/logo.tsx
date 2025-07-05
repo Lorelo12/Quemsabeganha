@@ -2,7 +2,7 @@ import { Clover } from 'lucide-react';
 
 export function Logo() {
   return (
-    <div className="flex flex-col items-center select-none my-6 gap-2">
+    <div className="flex flex-col items-center select-none gap-2">
       <div className="flex items-center gap-4">
         <Clover className="w-16 h-16 text-primary" style={{ filter: 'drop-shadow(0 0 10px hsl(var(--primary)))' }}/>
         <h1 className="font-black uppercase">
