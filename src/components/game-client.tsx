@@ -237,30 +237,31 @@ export default function GameClient() {
   }, [toast]);
 
   useEffect(() => {
-    if (gameState === 'game_over') {
-      let finalPrize = 0;
+    if (gameState !== 'game_over') return;
 
-      if (gaveUp) {
-        // Prize is the amount from the previous correctly answered question
-        finalPrize = currentQuestionIndex > 0 ? PRIZE_TIERS[currentQuestionIndex - 1].amount : 0;
-      } else {
-        const isWinner = answerStatus === 'correct' && currentQuestionIndex === TOTAL_QUESTIONS - 1;
-        if (isWinner) {
-          finalPrize = PRIZE_TIERS[TOTAL_QUESTIONS - 1].amount;
-        } else { // Incorrect answer
-          const lastCheckpointIndex = PRIZE_TIERS.slice(0, currentQuestionIndex)
-            .map(p => p.isCheckpoint)
-            .lastIndexOf(true);
-          finalPrize = lastCheckpointIndex !== -1 ? PRIZE_TIERS[lastCheckpointIndex].amount : 0;
-        }
-      }
-      
-      setPrizeWon(finalPrize);
-      if (finalPrize > 0) {
-        saveScore(finalPrize);
-      }
+    let finalPrize = 0;
+    const isWinner = !gaveUp && answerStatus === 'correct' && currentQuestionIndex === TOTAL_QUESTIONS - 1;
+
+    if (isWinner) {
+      // User answered the last question correctly and won the grand prize.
+      finalPrize = PRIZE_TIERS[TOTAL_QUESTIONS - 1].amount;
+    } else if (gaveUp) {
+      // User decided to give up. They get the prize from the last correctly answered question.
+      finalPrize = currentQuestionIndex > 0 ? PRIZE_TIERS[currentQuestionIndex - 1].amount : 0;
+    } else if (answerStatus === 'incorrect') {
+      // User answered incorrectly. They get the prize from the last safe checkpoint.
+      const lastCheckpointIndex = PRIZE_TIERS.slice(0, currentQuestionIndex)
+        .map(p => p.isCheckpoint)
+        .lastIndexOf(true);
+      finalPrize = lastCheckpointIndex !== -1 ? PRIZE_TIERS[lastCheckpointIndex].amount : 0;
     }
-  }, [gameState, answerStatus, currentQuestionIndex, saveScore, gaveUp]);
+    
+    setPrizeWon(finalPrize);
+    if (finalPrize > 0) {
+      saveScore(finalPrize);
+    }
+  }, [gameState, answerStatus, currentQuestionIndex, gaveUp, saveScore]);
+
 
   useEffect(() => {
     if (!hostResponse || answerStatus === 'unanswered') return;
@@ -567,25 +568,27 @@ export default function GameClient() {
                     </Button>
                     <div className="mt-4 text-center text-sm text-white/70">
                         <p>Para seu nome aparecer no ranking...</p>
-                         <Tooltip>
-                            <TooltipTrigger asChild>
-                                <div className="inline-block"> {/* Wrapper div for disabled button tooltip */}
-                                    <Button
-                                        variant="link"
-                                        className="text-secondary p-0 h-auto text-sm"
-                                        onClick={() => setAuthView('login')}
-                                        disabled={!auth}
-                                    >
-                                        Crie uma conta ou faça login &rarr;
-                                    </Button>
-                                </div>
-                            </TooltipTrigger>
-                            {!auth && (
-                                <TooltipContent>
-                                    <p>Configure o Firebase no .env para habilitar o login.</p>
-                                </TooltipContent>
-                            )}
-                        </Tooltip>
+                         <TooltipProvider>
+                          <Tooltip>
+                              <TooltipTrigger asChild>
+                                  <div className="inline-block"> {/* Wrapper div for disabled button tooltip */}
+                                      <Button
+                                          variant="link"
+                                          className="text-secondary p-0 h-auto text-sm"
+                                          onClick={() => setAuthView('login')}
+                                          disabled={!auth}
+                                      >
+                                          Crie uma conta ou faça login &rarr;
+                                      </Button>
+                                  </div>
+                              </TooltipTrigger>
+                              {!auth && (
+                                  <TooltipContent>
+                                      <p>Configure o Firebase no .env para habilitar o login.</p>
+                                  </TooltipContent>
+                              )}
+                          </Tooltip>
+                        </TooltipProvider>
                     </div>
                 </>
                 ) : (
@@ -648,25 +651,27 @@ export default function GameClient() {
             </Card>
 
             <div className="flex flex-wrap justify-center gap-4 mt-4">
-                 <Tooltip>
-                    <TooltipTrigger asChild>
-                        <div className="inline-block">
-                            <Button
-                                variant="ghost"
-                                className="text-secondary/80 hover:text-secondary"
-                                onClick={() => { setInfoDialog('ranking'); fetchLeaderboard(); }}
-                                disabled={!supabase}
-                            >
-                                <BarChart2 className="mr-2"/> Ranking
-                            </Button>
-                        </div>
-                    </TooltipTrigger>
-                    {!supabase && (
-                        <TooltipContent>
-                            <p>Configure o Supabase no .env para habilitar o ranking.</p>
-                        </TooltipContent>
-                    )}
-                </Tooltip>
+                 <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div className="inline-block">
+                                <Button
+                                    variant="ghost"
+                                    className="text-secondary/80 hover:text-secondary"
+                                    onClick={() => { setInfoDialog('ranking'); fetchLeaderboard(); }}
+                                    disabled={!supabase}
+                                >
+                                    <BarChart2 className="mr-2"/> Ranking
+                                </Button>
+                            </div>
+                        </TooltipTrigger>
+                        {!supabase && (
+                            <TooltipContent>
+                                <p>Configure o Supabase no .env para habilitar o ranking.</p>
+                            </TooltipContent>
+                        )}
+                    </Tooltip>
+                </TooltipProvider>
                 <Button variant="ghost" className="text-secondary/80 hover:text-secondary" onClick={() => setInfoDialog('ajuda')}>
                     <Lightbulb className="mr-2"/> Ajuda
                 </Button>
