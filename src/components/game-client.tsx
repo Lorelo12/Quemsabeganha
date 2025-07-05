@@ -21,7 +21,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Logo } from './logo';
-import { Card, CardContent } from './ui/card';
+import { Card } from './ui/card';
 
 type GameState = 'name_input' | 'playing' | 'game_over';
 type AnswerStatus = 'unanswered' | 'correct' | 'incorrect';
@@ -31,11 +31,11 @@ const nameSchema = z.object({
   name: z.string().min(2, 'O nome deve ter pelo menos 2 caracteres.').max(50, 'O nome é muito longo.'),
 });
 
-const answerButtonColors: { [key: string]: { gradient: string, border: string, text: string } } = {
-  A: { gradient: 'from-purple-500 to-indigo-600', border: 'border-purple-400', text: 'text-purple-200' },
-  B: { gradient: 'from-blue-400 to-cyan-500', border: 'border-blue-300', text: 'text-blue-100' },
-  C: { gradient: 'from-yellow-400 to-orange-500', border: 'border-yellow-300', text: 'text-yellow-100' },
-  D: { gradient: 'from-pink-500 to-red-600', border: 'border-pink-400', text: 'text-pink-100' },
+const answerButtonColors: { [key: string]: { gradient: string, border: string } } = {
+  A: { gradient: 'from-purple-500 to-indigo-600', border: 'border-purple-400' },
+  B: { gradient: 'from-blue-400 to-cyan-500', border: 'border-blue-300' },
+  C: { gradient: 'from-yellow-400 to-orange-500', border: 'border-yellow-300' },
+  D: { gradient: 'from-pink-500 to-red-600', border: 'border-pink-400' },
 };
 
 
