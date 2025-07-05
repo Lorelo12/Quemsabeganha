@@ -17,7 +17,7 @@ import type { Question, LifelineState } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Crown, Layers, Users, GraduationCap, SkipForward, CircleDollarSign } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Logo } from './logo';
@@ -31,11 +31,11 @@ const nameSchema = z.object({
   name: z.string().min(2, 'O nome deve ter pelo menos 2 caracteres.').max(50, 'O nome é muito longo.'),
 });
 
-const answerButtonColors: { [key: string]: { gradient: string, border: string } } = {
-  A: { gradient: 'from-purple-500 to-indigo-600', border: 'border-purple-400' },
-  B: { gradient: 'from-blue-400 to-cyan-500', border: 'border-blue-300' },
-  C: { gradient: 'from-yellow-400 to-orange-500', border: 'border-yellow-300' },
-  D: { gradient: 'from-pink-500 to-red-600', border: 'border-pink-400' },
+const answerButtonColors: { [key: string]: { gradient: string } } = {
+  A: { gradient: 'from-purple-500 to-indigo-600' },
+  B: { gradient: 'from-blue-400 to-cyan-500' },
+  C: { gradient: 'from-yellow-400 to-orange-500' },
+  D: { gradient: 'from-pink-500 to-red-600' },
 };
 
 
@@ -72,14 +72,7 @@ export default function GameClient() {
     setDisabledOptions([]);
   }
 
-  const startGame = (name: string) => {
-    setPlayerName(name);
-    setGameState('playing');
-    resetLifelines();
-    fetchQuestion(0);
-  };
-
-  const fetchQuestion = async (index: number) => {
+  const fetchQuestion = useCallback(async (index: number) => {
     setIsProcessing(true);
     setCurrentQuestion(null);
     setDisabledOptions([]);
@@ -105,7 +98,34 @@ export default function GameClient() {
     } finally {
       setIsProcessing(false);
     }
-  };
+  }, [askedQuestions, toast]);
+
+  const startGame = useCallback((name: string) => {
+    setPlayerName(name);
+    setGameState('playing');
+    resetLifelines();
+    fetchQuestion(0);
+  }, [fetchQuestion]);
+
+  useEffect(() => {
+    if (!hostResponse || answerStatus === 'unanswered') return;
+
+    const timer = setTimeout(() => {
+        if (answerStatus === 'correct') {
+            if (currentQuestionIndex === TOTAL_QUESTIONS - 1) {
+                setGameState('game_over');
+            } else {
+                fetchQuestion(currentQuestionIndex + 1);
+            }
+        } else if (answerStatus === 'incorrect') {
+            setGameState('game_over');
+            setIsProcessing(false);
+        }
+    }, 2500); // Wait for animations and for user to read host response
+
+    return () => clearTimeout(timer);
+  }, [hostResponse, answerStatus, currentQuestionIndex, fetchQuestion]);
+
 
   const handleAnswer = async (answerKey: string) => {
     if (!currentQuestion) return;
@@ -126,21 +146,6 @@ export default function GameClient() {
       console.error(error);
       setHostResponse(isCorrect ? 'Resposta certa!' : 'Resposta errada.');
     }
-  };
-  
-  const handleNextWithDelay = () => {
-    setTimeout(() => {
-        setIsProcessing(false);
-        if (answerStatus === 'correct') {
-            if (currentQuestionIndex === TOTAL_QUESTIONS - 1) {
-                setGameState('game_over');
-            } else {
-                fetchQuestion(currentQuestionIndex + 1);
-            }
-        } else {
-            setGameState('game_over');
-        }
-    }, 1500); // 1.5 second delay to show host response
   };
 
   const restartGame = () => {
@@ -208,7 +213,7 @@ export default function GameClient() {
   };
   
   const renderGameScreen = () => {
-     if (isProcessing && !currentQuestion) {
+     if (isProcessing && !currentQuestion && !hostResponse) {
         return (
            <div className="flex flex-col items-center justify-center gap-4 text-secondary h-96">
              <Loader2 className="h-16 w-16 animate-spin" />
@@ -247,13 +252,13 @@ export default function GameClient() {
                           "z-10 flex items-center gap-4 p-4 rounded-full border-2 text-lg font-bold transition-all duration-300 transform hover:scale-105",
                           "disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none",
                           isDisabled && "opacity-30 bg-gray-700 !border-gray-600",
-                          !selectedAnswer && `bg-gradient-to-r ${buttonColor.gradient} ${buttonColor.border}`,
+                          !selectedAnswer && `bg-gradient-to-r ${buttonColor.gradient}`,
                           isSelected && isCorrect && "bg-green-500 border-green-300 animate-pulse ring-4 ring-white",
                           isSelected && !isCorrect && "bg-red-500 border-red-300 animate-pulse ring-4 ring-white",
                           selectedAnswer && !isSelected && !isCorrect && "opacity-40"
                         )}
                       >
-                        <span className={cn("flex items-center justify-center h-8 w-8 rounded-full font-black text-white", buttonColor.gradient)}>{key}</span>
+                        <span className={cn("flex items-center justify-center h-8 w-8 rounded-full font-black text-white", `bg-gradient-to-r ${buttonColor.gradient}`)}>{key}</span>
                         <span className="text-white">{value}</span>
                       </button>
                     );
@@ -261,31 +266,30 @@ export default function GameClient() {
                 </div>
             </div>
             <div className="col-span-2 flex flex-col justify-around items-center gap-4 text-center">
-                 <button onClick={handleUseSkip} disabled={lifelines.skip === 0 || !!selectedAnswer} className="flex flex-col items-center gap-1 text-secondary disabled:opacity-40">
+                 <button onClick={handleUseSkip} disabled={lifelines.skip === 0 || !!selectedAnswer || isProcessing} className="flex flex-col items-center gap-1 text-secondary disabled:opacity-40">
                     <SkipForward className="w-10 h-10"/>
                     <span className="font-semibold">Pular ({lifelines.skip})</span>
                  </button>
-                 <button onClick={handleUseExperts} disabled={!lifelines.experts || !!selectedAnswer} className="flex flex-col items-center gap-1 text-primary disabled:opacity-40">
+                 <button onClick={handleUseExperts} disabled={!lifelines.experts || !!selectedAnswer || isProcessing} className="flex flex-col items-center gap-1 text-primary disabled:opacity-40">
                     <GraduationCap className="w-10 h-10"/>
                     <span className="font-semibold">Convidado</span>
                  </button>
-                 <button onClick={handleUseCards} disabled={!lifelines.cards || !!selectedAnswer} className="flex flex-col items-center gap-1 text-cyan-400 disabled:opacity-40">
+                 <button onClick={handleUseCards} disabled={!lifelines.cards || !!selectedAnswer || isProcessing} className="flex flex-col items-center gap-1 text-cyan-400 disabled:opacity-40">
                     <Layers className="w-10 h-10"/>
                     <span className="font-semibold">Cartas</span>
                  </button>
-                 <button onClick={handleUseAudience} disabled={!lifelines.audience || !!selectedAnswer} className="flex flex-col items-center gap-1 text-orange-400 disabled:opacity-40">
+                 <button onClick={handleUseAudience} disabled={!lifelines.audience || !!selectedAnswer || isProcessing} className="flex flex-col items-center gap-1 text-orange-400 disabled:opacity-40">
                     <Users className="w-10 h-10"/>
                     <span className="font-semibold">Platéia</span>
                  </button>
             </div>
            </div>
            
-           <Progress value={((currentQuestionIndex + 1) / TOTAL_QUESTIONS) * 100} className="w-full h-4 bg-black/30 border border-border" indicatorClassName="bg-gradient-to-r from-orange-400 via-yellow-400 to-pink-500" />
+           <Progress value={((currentQuestionIndex + 1) / TOTAL_QUESTIONS) * 100} className="w-full h-4 bg-black/30 border border-border" indicatorClassName="bg-gradient-to-r from-secondary via-primary to-accent" />
             
-           {selectedAnswer && (
+           {hostResponse && (
               <div className="w-full text-center mt-4 animate-fade-in">
                   <p className="text-2xl font-bold text-shadow-neon-yellow">{hostResponse}</p>
-                  {isProcessing && handleNextWithDelay()}
               </div>
             )}
         </div>
@@ -358,14 +362,14 @@ export default function GameClient() {
   return (
     <>
       <div className="w-full max-w-4xl mx-auto p-4 md:p-6 rounded-3xl bg-black/30">
-        <div className="p-1 bg-gradient-to-br from-neon-orange via-neon-pink to-neon-blue rounded-2xl">
+        <div className="p-1 bg-gradient-to-br from-secondary via-primary to-accent rounded-2xl">
             <div className="bg-dark-bg p-6 rounded-xl min-h-[600px] flex items-center justify-center">
                 {renderContent()}
             </div>
         </div>
       </div>
       <AlertDialog open={dialogContent !== null} onOpenChange={() => setDialogContent(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-dark-bg border-primary shadow-lg shadow-primary/30">
           {dialogContent === 'audience' && audienceData && (
             <>
               <AlertDialogHeader>

@@ -16,10 +16,6 @@ export default {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         'dark-bg': '#1D1A3D',
-        'neon-pink': '#F9008E',
-        'neon-yellow': '#EEFF00',
-        'neon-orange': '#FF7F00',
-        'neon-blue': '#00C2FF',
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
