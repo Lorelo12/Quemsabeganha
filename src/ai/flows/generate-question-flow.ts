@@ -61,6 +61,13 @@ const generateQuestionFlow = ai.defineFlow(
         name: 'generateQuestionFlow',
         inputSchema: GenerateQuestionInputSchema,
         outputSchema: QuestionSchema,
+        retry: {
+            maxAttempts: 3,
+            backoff: {
+                delay: '2s',
+                multiplier: 2
+            }
+        }
     },
     async (input) => {
         const { output } = await prompt(input);

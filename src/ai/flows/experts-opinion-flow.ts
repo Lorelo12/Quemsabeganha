@@ -57,6 +57,13 @@ const expertsOpinionFlow = ai.defineFlow(
         name: 'expertsOpinionFlow',
         inputSchema: ExpertsOpinionInputSchema,
         outputSchema: ExpertsOpinionOutputSchema,
+        retry: {
+            maxAttempts: 3,
+            backoff: {
+                delay: '2s',
+                multiplier: 2
+            }
+        }
     },
     async (input) => {
         const { output } = await prompt(input);

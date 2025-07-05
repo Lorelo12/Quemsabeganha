@@ -54,6 +54,13 @@ const audiencePollFlow = ai.defineFlow(
         name: 'audiencePollFlow',
         inputSchema: AudiencePollInputSchema,
         outputSchema: AudiencePollOutputSchema,
+        retry: {
+            maxAttempts: 3,
+            backoff: {
+                delay: '2s',
+                multiplier: 2
+            }
+        }
     },
     async (input) => {
         const { output } = await prompt(input);
