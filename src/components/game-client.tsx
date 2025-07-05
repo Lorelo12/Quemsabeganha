@@ -368,7 +368,7 @@ export default function GameClient() {
             <>
               <AlertDialogHeader>
                 <AlertDialogTitle className="flex items-center gap-2"><Users/>A opinião da plateia é...</AlertDialogTitle>
-                <AlertDialogDescription>
+                <AlertDialogDescription asChild>
                   <div className="space-y-2 pt-4">
                     {Object.entries(audienceData).map(([key, value]) => (
                       <div key={key} className="flex items-center gap-2">
