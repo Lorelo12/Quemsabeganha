@@ -80,6 +80,7 @@ export default function GameClient() {
   const [expertsData, setExpertsData] = useState<ExpertsOpinionOutput | null>(null);
   const [feedbackText, setFeedbackText] = useState('');
   const [prizeWon, setPrizeWon] = useState(0);
+  const [gaveUp, setGaveUp] = useState(false);
   
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[] | null>(null);
   const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
@@ -89,7 +90,6 @@ export default function GameClient() {
   const currentQuestion = quizQuestions[currentQuestionIndex] ?? null;
 
   useEffect(() => {
-    // This client-side check ensures we don't attempt to play without the necessary config.
     const keyIsPresent = !!process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
     setIsAiConfigured(keyIsPresent);
   }, []);
@@ -109,6 +109,7 @@ export default function GameClient() {
     setHostResponse('');
     setIsProcessing(true);
     setDisabledOptions([]);
+    setGaveUp(false);
     try {
         const newQuestions = await generateQuiz();
         if (newQuestions.length !== TOTAL_QUESTIONS) {
@@ -237,15 +238,21 @@ export default function GameClient() {
 
   useEffect(() => {
     if (gameState === 'game_over') {
-      const isWinner = answerStatus === 'correct' && currentQuestionIndex === TOTAL_QUESTIONS - 1;
       let finalPrize = 0;
-      if (isWinner) {
-        finalPrize = PRIZE_TIERS[TOTAL_QUESTIONS - 1].amount;
+
+      if (gaveUp) {
+        // Prize is the amount from the previous correctly answered question
+        finalPrize = currentQuestionIndex > 0 ? PRIZE_TIERS[currentQuestionIndex - 1].amount : 0;
       } else {
-        const lastCheckpointIndex = PRIZE_TIERS.slice(0, currentQuestionIndex)
-          .map(p => p.isCheckpoint)
-          .lastIndexOf(true);
-        finalPrize = lastCheckpointIndex !== -1 ? PRIZE_TIERS[lastCheckpointIndex].amount : 0;
+        const isWinner = answerStatus === 'correct' && currentQuestionIndex === TOTAL_QUESTIONS - 1;
+        if (isWinner) {
+          finalPrize = PRIZE_TIERS[TOTAL_QUESTIONS - 1].amount;
+        } else { // Incorrect answer
+          const lastCheckpointIndex = PRIZE_TIERS.slice(0, currentQuestionIndex)
+            .map(p => p.isCheckpoint)
+            .lastIndexOf(true);
+          finalPrize = lastCheckpointIndex !== -1 ? PRIZE_TIERS[lastCheckpointIndex].amount : 0;
+        }
       }
       
       setPrizeWon(finalPrize);
@@ -253,7 +260,7 @@ export default function GameClient() {
         saveScore(finalPrize);
       }
     }
-  }, [gameState, answerStatus, currentQuestionIndex, saveScore]);
+  }, [gameState, answerStatus, currentQuestionIndex, saveScore, gaveUp]);
 
   useEffect(() => {
     if (!hostResponse || answerStatus === 'unanswered') return;
@@ -317,6 +324,7 @@ export default function GameClient() {
     setSelectedAnswer(null);
     setAnswerStatus('unanswered');
     setHostResponse('');
+    setGaveUp(false);
     setPrizeWon(0);
     setLeaderboard(null);
   };
@@ -375,6 +383,12 @@ export default function GameClient() {
         setIsProcessing(false);
       }
     }
+  };
+
+  const handleGiveUp = () => {
+    if (isProcessing || !!selectedAnswer) return;
+    setGaveUp(true);
+    setGameState('game_over');
   };
 
   const handleFeedbackSubmit = (e: React.FormEvent) => {
@@ -498,6 +512,18 @@ export default function GameClient() {
            
            <Progress value={((currentQuestionIndex + 1) / TOTAL_QUESTIONS) * 100} className="w-full h-4 bg-black/30 border border-border" indicatorClassName="bg-gradient-to-r from-secondary via-primary to-accent" />
             
+            <div className="w-full text-center mt-6">
+                <Button 
+                    variant="outline" 
+                    onClick={handleGiveUp} 
+                    disabled={isProcessing || !!selectedAnswer}
+                    className="border-secondary text-secondary hover:bg-secondary/20 hover:text-secondary font-bold text-lg py-6 px-8 rounded-full shadow-lg shadow-secondary/20"
+                >
+                    <Trophy className="mr-2 h-5 w-5"/>
+                    Parar e Pegar o Prêmio
+                </Button>
+            </div>
+
            {hostResponse && (
               <div className="w-full text-center mt-4 animate-fade-in">
                   <p className="text-2xl font-bold text-shadow-neon-yellow">{hostResponse}</p>
@@ -654,18 +680,22 @@ export default function GameClient() {
           </div>
         );
       case 'game_over':
-        const isWinner = answerStatus === 'correct' && currentQuestionIndex === TOTAL_QUESTIONS - 1;
+        const isWinner = !gaveUp && answerStatus === 'correct' && currentQuestionIndex === TOTAL_QUESTIONS - 1;
         
         return (
           <div className="flex flex-col items-center justify-center text-center w-full max-w-2xl animate-fade-in">
             <Crown className="h-24 w-24 text-secondary animate-pulse-slow" style={{ filter: 'drop-shadow(0 0 15px hsl(var(--secondary)))' }}/>
             <h1 className="text-4xl md:text-6xl font-black mt-4 text-shadow-neon-yellow">Fim de Jogo!</h1>
             <p className="text-2xl mt-4 text-white/80">
-              {isWinner ? `Parabéns, ${playerName || 'Jogador(a)'}!` : `Que pena, ${playerName || 'Jogador(a)'}!`}
+              {isWinner ? `Parabéns, ${playerName || 'Jogador(a)'}!`
+               : gaveUp ? `Uma decisão inteligente, ${playerName || 'Jogador(a)'}!`
+               : `Que pena, ${playerName || 'Jogador(a)'}!`}
             </p>
             <p className="max-w-xl text-lg text-white/80 my-8">
               {isWinner 
                 ? `Você é a nova milionária do nosso quiz! Você ganhou o prêmio máximo de R$ ${prizeWon.toLocaleString('pt-BR')},00! 👑`
+                : gaveUp
+                ? `Você decidiu parar e garantir seus ganhos. Você leva para casa o prêmio de R$ ${prizeWon.toLocaleString('pt-BR')},00. Parabéns pela conquista!`
                 : `Você leva para casa o prêmio de R$ ${prizeWon.toLocaleString('pt-BR')},00.`
               }
             </p>
@@ -802,6 +832,7 @@ export default function GameClient() {
                             <h3 className="font-bold text-primary mb-2">Regras de Premiação:</h3>
                             <ul className="space-y-1 list-disc list-inside">
                                 <li>A cada resposta correta, você avança para o próximo nível de prêmio.</li>
+                                <li>Se preferir não arriscar, você pode <strong className="text-secondary">parar e levar</strong> o valor da última pergunta que acertou.</li>
                                 <li>Existem dois <strong className="text-secondary">checkpoints seguros</strong>: na pergunta 5 (R$ 5.000) e na pergunta 10 (R$ 50.000).</li>
                                 <li>Se errar, você leva para casa o valor do último checkpoint que alcançou. Se errar antes do primeiro checkpoint, o prêmio é R$ 0.</li>
                             </ul>
