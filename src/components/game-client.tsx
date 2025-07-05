@@ -340,8 +340,8 @@ export default function GameClient() {
             </p>
             <p className="max-w-xl text-lg text-white/80 my-8">
               {isWinner 
-                ? `Você é a nova milionária do nosso quiz! Você ganhou o prêmio máximo de R$ ${prizeWon.toLocaleString('pt-BR')},00 (fictícios)! 👑`
-                : `Você leva para casa o prêmio garantido de R$ ${prizeWon.toLocaleString('pt-BR')},00 (fictícios).`
+                ? `Você é a nova milionária do nosso quiz! Você ganhou o prêmio máximo de R$ ${prizeWon.toLocaleString('pt-BR')},00! 👑`
+                : `Você leva para casa o prêmio garantido de R$ ${prizeWon.toLocaleString('pt-BR')},00.`
               }
             </p>
              <Button onClick={restartGame} size="lg" className="animate-pulse-slow text-xl font-bold px-12 py-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/50 border-2 border-white/30">

@@ -18,7 +18,14 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={`${poppins.className} antialiased`}>
-        {children}
+        <div className="flex flex-col min-h-screen">
+          <main className="flex-grow flex items-center justify-center w-full p-4">
+            {children}
+          </main>
+          <footer className="text-center p-4 text-xs text-white/50">
+            Este jogo é apenas para fins de entretenimento. Os valores são fictícios.
+          </footer>
+        </div>
         <Toaster />
       </body>
     </html>
