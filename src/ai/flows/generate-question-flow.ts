@@ -25,20 +25,23 @@ const prompt = ai.definePrompt({
     name: 'generateQuestionPrompt',
     input: { schema: GenerateQuestionInputSchema },
     output: { schema: QuestionSchema },
-    prompt: `Você é um especialista em criar perguntas para um game show de curiosidades. Sua missão é garantir que cada partida seja uma experiência ÚNICA e imprevisível.
+    prompt: `Você é um especialista em criar perguntas para um game show de curiosidades, seguindo o estilo do "Show do Milhão". Sua missão é criar uma experiência justa, desafiadora e imprevisível.
 
 Sua tarefa é gerar uma nova pergunta de múltipla escolha (com 4 opções: A, B, C, D) com base nos seguintes critérios:
 
-1.  **Máxima Criatividade e Variedade:** Este é o critério mais importante. Evite perguntas comuns ou clichês. A cada chamada, você DEVE gerar uma pergunta completamente nova e diferente. Pense em tópicos inesperados, fatos obscuros e curiosidades surpreendentes. A aleatoriedade é essencial para que cada jogo seja uma experiência nova.
-2.  **Tema:** Conhecimentos gerais (história, geografia, ciências, cultura pop, artes, etc.). Varie os temas o máximo possível.
-3.  **Nível de Dificuldade:** A dificuldade deve ser compatível com o nível fornecido, em uma escala de 1 (mais fácil) a 16 (mais difícil).
-    - Nível 1-5: Fácil. Perguntas que a maioria das pessoas com conhecimento básico saberia responder.
-    - Nível 6-10: Médio. Perguntas que exigem um pouco mais de conhecimento específico.
-    - Nível 11-15: Difícil. Perguntas bem específicas, para especialistas ou entusiastas.
-    - Nível 16: Muito Difícil. A pergunta do milhão! Desafiadora e que poucos saberiam.
-4.  **Originalidade (Anti-Repetição):** A pergunta gerada não pode ser uma das perguntas da lista de "Perguntas Anteriores" abaixo. Verifique cuidadosamente esta lista.
-5.  **Exclusividade da Resposta:** É crucial que **apenas UMA** das quatro opções seja a resposta correta. As outras três devem ser incorretas, mas plausíveis (distratores). Evite ambiguidades ou perguntas com múltiplas respostas corretas.
-6.  **Formato:** A resposta deve ser um objeto JSON com os campos "question", "options" (um objeto com chaves A, B, C, D) e "correctAnswerKey".
+1.  **Aderência Estrita à Dificuldade:** Este é o critério MAIS IMPORTANTE. A dificuldade da pergunta DEVE corresponder estritamente ao nível solicitado. É fundamental que a progressão da dificuldade seja sentida pelo jogador. Siga esta escala rigorosamente:
+    - **Níveis 1-5 (Iniciante):** Perguntas de conhecimento geral muito comuns, que a grande maioria da população adulta saberia responder. Ex: "Qual a capital do Brasil?".
+    - **Níveis 6-10 (Intermediário):** Perguntas que exigem um conhecimento um pouco mais aprofundado, mas ainda sobre temas conhecidos. Ex: "Quem escreveu 'Dom Quixote'?".
+    - **Níveis 11-15 (Avançado):** Perguntas bastante específicas, que exigem conhecimento de nicho ou acadêmico. Ex: "Qual o nome do processo de conversão de luz solar em energia pelas plantas?".
+    - **Nível 16 (Expert/Milhão):** Uma pergunta extremamente difícil e obscura, que apenas um verdadeiro especialista no assunto saberia. Deve ser um desafio à altura do prêmio máximo.
+
+2.  **Criatividade e Variedade:** Evite perguntas clichês. A cada chamada, gere uma pergunta nova e diferente, variando os temas (história, geografia, ciências, cultura pop, artes, etc.). A aleatoriedade é essencial.
+
+3.  **Originalidade (Anti-Repetição):** A pergunta gerada não pode ser uma das perguntas da lista de "Perguntas Anteriores" abaixo. Verifique cuidadosamente esta lista.
+
+4.  **Exclusividade da Resposta:** É crucial que **apenas UMA** das quatro opções seja a resposta correta. As outras três devem ser incorretas, mas plausíveis (distratores). Evite ambiguidades.
+
+5.  **Formato:** A resposta deve ser um objeto JSON com os campos "question", "options" (um objeto com chaves A, B, C, D) e "correctAnswerKey".
 
 ---
 **Nível de Dificuldade Solicitado:** {{{difficulty}}}
@@ -53,7 +56,7 @@ Nenhuma.
 {{/if}}
 ---
 
-Gere a próxima pergunta. Seja criativo e surpreenda o jogador!`,
+Gere a próxima pergunta. Seja criativo e siga a escala de dificuldade à risca!`,
 });
 
 const generateQuestionFlow = ai.defineFlow(
