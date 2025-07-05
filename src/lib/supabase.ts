@@ -25,13 +25,9 @@ if (isValidUrl(supabaseUrl) && supabaseAnonKey) {
   try {
     supabase = createClient(supabaseUrl, supabaseAnonKey);
   } catch (error) {
-    console.error("Error initializing Supabase client:", error);
-    console.warn("Please make sure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your .env file are valid.");
+    // Initialization failed. The UI will handle informing the user.
     supabase = null;
   }
-} else {
-    // The game client will show a user-friendly toast if Supabase isn't configured.
-    // No need for a console warning here that might confuse the user.
 }
 
 export { supabase };

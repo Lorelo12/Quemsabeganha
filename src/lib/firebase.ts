@@ -32,14 +32,12 @@ if (hasAllKeys) {
     // IMPORTANT: Only set configured to true if initialization succeeds.
     isFirebaseConfigured = true;
   } catch (error) {
-    console.warn("Firebase initialization failed. Please check your .env file credentials. The app will proceed in guest mode.", error);
+    // Initialization failed, likely due to invalid credentials.
+    // The UI will handle showing a message to the user.
     app = null;
     auth = null;
     isFirebaseConfigured = false;
   }
-} else {
-    // The game client will show a user-friendly alert if Firebase isn't configured.
-    // No need for a console warning here that might confuse the user.
 }
 
 export { app, auth, isFirebaseConfigured };
