@@ -510,7 +510,7 @@ export default function GameClient() {
            <div className="flex flex-col items-center justify-center text-center w-full max-w-4xl p-4 gap-8 animate-fade-in">
             <Logo />
             <p className="text-2xl text-white/80">
-              O clássico Show do Milhão brasileiro com elegância!<br/>Responda 16 perguntas e ganhe R$ 1.000.000!
+              Mostre que você sabe tudo neste jogo de perguntas e respostas!<br/>Responda a 16 perguntas para ganhar R$ 1.000.000!
             </p>
             
             <Card className="w-full max-w-sm bg-black/30 border-primary/50 p-6">
