@@ -156,12 +156,15 @@ export default function GameClient() {
           startGame();
         }
       } catch (error: any) {
+        console.error("Firebase signup error:", error);
         const errorCode = error.code;
-        let friendlyMessage = "Ocorreu um erro ao criar a conta.";
+        let friendlyMessage = "Ocorreu um erro ao criar a conta. Verifique suas credenciais e a conexão com a internet.";
         if (errorCode === 'auth/email-already-in-use') {
           friendlyMessage = "Este e-mail já está em uso. Tente fazer login.";
         } else if (errorCode === 'auth/weak-password') {
           friendlyMessage = "A senha é muito fraca. Tente uma com pelo menos 6 caracteres.";
+        } else if (errorCode === 'auth/operation-not-allowed') {
+            friendlyMessage = "Cadastro por Email/Senha não está ativado. Habilite-o no seu Console do Firebase em Autenticação > Métodos de login.";
         }
         toast({ title: "Erro no Cadastro", description: friendlyMessage, variant: "destructive" });
       } finally {
@@ -179,8 +182,9 @@ export default function GameClient() {
         toast({ title: "Login realizado com sucesso!", description: "Bem-vindo(a) de volta!" });
         startGame();
       } catch (error: any) {
+        console.error("Firebase login error:", error);
         const errorCode = error.code;
-        let friendlyMessage = "Ocorreu um erro ao fazer login.";
+        let friendlyMessage = "Ocorreu um erro ao fazer login. Verifique suas credenciais e a conexão.";
         if (errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password' || errorCode === 'auth/invalid-credential') {
             friendlyMessage = "Email ou senha incorretos.";
         }
