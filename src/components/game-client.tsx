@@ -1,12 +1,15 @@
 'use client';
 
 import { gameShowHost } from '@/ai/flows/game-show-host';
+import { generateQuestion } from '@/ai/flows/generate-question-flow';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { QUESTIONS, PRIZE_TIERS } from '@/lib/questions';
+import { PRIZE_TIERS } from '@/lib/questions';
+import type { Question } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CheckCircle2, Crown, Loader2, XCircle } from 'lucide-react';
@@ -17,6 +20,7 @@ import { Logo } from './logo';
 import { PrizeLadder } from './prize-ladder';
 
 type GameState = 'welcome' | 'playing' | 'result' | 'gameOver';
+const TOTAL_QUESTIONS = 16;
 
 const nameSchema = z.object({
   name: z.string().min(2, 'O nome deve ter pelo menos 2 caracteres.'),
@@ -25,6 +29,7 @@ const nameSchema = z.object({
 export default function GameClient() {
   const [gameState, setGameState] = useState<GameState>('welcome');
   const [playerName, setPlayerName] = useState('');
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [hostResponse, setHostResponse] = useState('');
   const [selectedAnswerKey, setSelectedAnswerKey] = useState<string | null>(null);
@@ -39,11 +44,42 @@ export default function GameClient() {
     defaultValues: { name: '' },
   });
 
-  useEffect(() => {
-    if (gameState === 'playing' && currentQuestionIndex === 0 && playerName) {
-      setHostResponse(`Bem-vindo(a) ao auditório do Quiz Milionário, ${playerName}! Prepare-se para a primeira pergunta valendo R$ 1.000,00 fictícios. Vamos lá!`);
+  const fetchAndSetQuestion = async (index: number) => {
+    setIsLoading(true);
+    const loadingMessage = index === 0
+        ? `Bem-vindo(a), ${playerName}! Nossa produção está preparando a primeira pergunta...`
+        : 'Nossa produção está preparando a próxima pergunta...';
+    setHostResponse(loadingMessage);
+
+    try {
+        const newQuestion = await generateQuestion({
+            difficulty: index + 1,
+            previousQuestions: questions.map(q => q.question),
+        });
+        setQuestions(prev => [...prev, newQuestion]);
+        setHostResponse(`Aqui está, valendo R$ ${PRIZE_TIERS[index].label}! Boa sorte!`);
+        setCurrentQuestionIndex(index);
+        setGameState('playing');
+        setSelectedAnswerKey(null);
+        setIsCorrect(null);
+    } catch (error) {
+        console.error("Failed to fetch question:", error);
+        toast({
+            title: "Erro na Geração da Pergunta",
+            description: "Não foi possível conectar com nossa produção. O jogo será reiniciado.",
+            variant: "destructive",
+        });
+        setTimeout(restartGame, 3000);
+    } finally {
+        setIsLoading(false);
     }
-  }, [gameState, currentQuestionIndex, playerName]);
+  };
+
+  useEffect(() => {
+    if (gameState === 'playing' && playerName && questions.length === 0) {
+      fetchAndSetQuestion(0);
+    }
+  }, [gameState, playerName]);
   
   const handleNameSubmit = (values: z.infer<typeof nameSchema>) => {
     setPlayerName(values.name);
@@ -54,11 +90,10 @@ export default function GameClient() {
     setIsLoading(true);
     setSelectedAnswerKey(answerKey);
 
-    const currentQuestion = QUESTIONS[currentQuestionIndex];
+    const currentQuestion = questions[currentQuestionIndex];
     const correct = answerKey === currentQuestion.correctAnswerKey;
     setIsCorrect(correct);
 
-    const currentPrize = currentQuestionIndex > 0 ? PRIZE_TIERS[currentQuestionIndex - 1].amount : 0;
     const nextPrize = PRIZE_TIERS[currentQuestionIndex].amount;
 
     const checkpointTier = [...PRIZE_TIERS]
@@ -93,16 +128,12 @@ export default function GameClient() {
 
   const handleNext = () => {
     if (isCorrect) {
-      if (currentQuestionIndex === QUESTIONS.length - 1) {
+      if (currentQuestionIndex === TOTAL_QUESTIONS - 1) {
         setFinalPrize(PRIZE_TIERS[currentQuestionIndex].amount);
         setGameState('gameOver');
         setHostResponse(`Parabéns, ${playerName}! Você zerou o Quiz Milionário e ganhou o prêmio máximo de R$ 1.000.000,00 (fictícios)! Você é uma lenda!`);
       } else {
-        setCurrentQuestionIndex(prev => prev + 1);
-        setGameState('playing');
-        setSelectedAnswerKey(null);
-        setIsCorrect(null);
-        setHostResponse(`Vamos para a próxima pergunta, valendo R$ ${PRIZE_TIERS[currentQuestionIndex + 1].label}!`);
+        fetchAndSetQuestion(currentQuestionIndex + 1);
       }
     } else {
       const checkpointTier = [...PRIZE_TIERS]
@@ -120,6 +151,7 @@ export default function GameClient() {
   const restartGame = () => {
     setGameState('welcome');
     setPlayerName('');
+    setQuestions([]);
     setCurrentQuestionIndex(0);
     setHostResponse('');
     setSelectedAnswerKey(null);
@@ -189,7 +221,8 @@ export default function GameClient() {
     );
   }
 
-  const currentQuestion = QUESTIONS[currentQuestionIndex];
+  const currentQuestion = questions[currentQuestionIndex];
+  const showLoadingState = isLoading && !currentQuestion;
 
   return (
     <div className="w-full max-w-7xl mx-auto animate-fade-in">
@@ -199,43 +232,66 @@ export default function GameClient() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
            <Card className="min-h-[120px] flex items-center justify-center p-6 shadow-lg">
-             <p className="text-center text-lg font-medium text-primary-foreground bg-primary rounded-lg p-4 w-full">{hostResponse}</p>
+             <p className="text-center text-lg font-medium text-primary-foreground bg-primary rounded-lg p-4 w-full flex items-center justify-center gap-2">
+                {isLoading && <Loader2 className="animate-spin" />}
+                {hostResponse}
+            </p>
           </Card>
 
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle className="font-headline text-2xl">Pergunta {currentQuestionIndex + 1}</CardTitle>
-              <CardDescription>Valendo R$ {PRIZE_TIERS[currentQuestionIndex].label}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xl mb-6 font-semibold">{currentQuestion.question}</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {Object.entries(currentQuestion.options).map(([key, value]) => {
-                  const isSelected = selectedAnswerKey === key;
-                  const isAnswered = selectedAnswerKey !== null;
-                  const isTheCorrectAnswer = key === currentQuestion.correctAnswerKey;
+          {showLoadingState ? (
+            <Card className="shadow-lg">
+              <CardHeader>
+                <Skeleton className="h-8 w-1/4" />
+                <Skeleton className="h-6 w-1/3" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-10 w-full mb-6" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            currentQuestion && (
+              <Card className="shadow-lg animate-fade-in">
+                <CardHeader>
+                  <CardTitle className="font-headline text-2xl">Pergunta {currentQuestionIndex + 1}</CardTitle>
+                  <CardDescription>Valendo R$ {PRIZE_TIERS[currentQuestionIndex].label}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xl mb-6 font-semibold">{currentQuestion.question}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {Object.entries(currentQuestion.options).map(([key, value]) => {
+                      const isSelected = selectedAnswerKey === key;
+                      const isAnswered = selectedAnswerKey !== null;
+                      const isTheCorrectAnswer = key === currentQuestion.correctAnswerKey;
 
-                  return (
-                    <Button
-                      key={key}
-                      onClick={() => handleAnswer(key)}
-                      disabled={isLoading || isAnswered}
-                      className={cn(
-                        "justify-start p-6 h-auto text-base whitespace-normal text-left transition-all duration-300",
-                        isAnswered && isTheCorrectAnswer && "bg-green-500 hover:bg-green-600 animate-pulse",
-                        isAnswered && isSelected && !isCorrect && "bg-red-500 hover:bg-red-600",
-                        !isAnswered && "hover:bg-primary/80"
-                      )}
-                    >
-                      <span className="font-bold mr-2">{key}:</span> {value}
-                       {isAnswered && isTheCorrectAnswer && <CheckCircle2 className="ml-auto h-6 w-6" />}
-                       {isAnswered && isSelected && !isCorrect && <XCircle className="ml-auto h-6 w-6" />}
-                    </Button>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
+                      return (
+                        <Button
+                          key={key}
+                          onClick={() => handleAnswer(key)}
+                          disabled={isLoading || isAnswered}
+                          className={cn(
+                            "justify-start p-6 h-auto text-base whitespace-normal text-left transition-all duration-300",
+                            isAnswered && isTheCorrectAnswer && "bg-green-500 hover:bg-green-600 animate-pulse",
+                            isAnswered && isSelected && !isCorrect && "bg-red-500 hover:bg-red-600",
+                            !isAnswered && "hover:bg-primary/80"
+                          )}
+                        >
+                          <span className="font-bold mr-2">{key}:</span> {value}
+                          {isAnswered && isTheCorrectAnswer && <CheckCircle2 className="ml-auto h-6 w-6" />}
+                          {isAnswered && isSelected && !isCorrect && <XCircle className="ml-auto h-6 w-6" />}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          )}
            {gameState === 'result' && (
             <div className="text-center animate-fade-in">
                 <Button onClick={handleNext} size="lg" disabled={isLoading} className="bg-accent text-accent-foreground hover:bg-accent/90">

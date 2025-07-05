@@ -1,4 +1,4 @@
-import type { Question, PrizeTier } from './types';
+import type { PrizeTier } from './types';
 
 export const PRIZE_TIERS: PrizeTier[] = [
   // 1-5
@@ -23,85 +23,5 @@ export const PRIZE_TIERS: PrizeTier[] = [
   { amount: 1000000, label: '1 MILHÃO', isCheckpoint: false },
 ];
 
-export const QUESTIONS: Question[] = [
-  {
-    question: 'Qual Bicho transmite a Doença de Chagas?',
-    options: { A: 'Abelha', B: 'Barata', C: 'Pulga', D: 'Barbeiro' },
-    correctAnswerKey: 'D',
-  },
-  {
-    question: 'Qual fruto é conhecido no Norte e Nordeste como "jerimum"?',
-    options: { A: 'Caju', B: 'Abóbora', C: 'Chuchu', D: 'Coco' },
-    correctAnswerKey: 'B',
-  },
-  {
-    question: 'Qual é o coletivo de cães?',
-    options: { A: 'Manada', B: 'Alcateia', C: 'Matilha', D: 'Rebanho' },
-    correctAnswerKey: 'C',
-  },
-  {
-    question: 'Qual é o triângulo que tem todos os lados diferentes?',
-    options: { A: 'Equilátero', B: 'Isósceles', C: 'Escaleno', D: 'Trapézio' },
-    correctAnswerKey: 'C',
-  },
-  {
-    question: 'Quem compôs o Hino da Independência?',
-    options: { A: 'Dom Pedro I', B: 'Manuel Bandeira', C: 'Castro Alves', D: 'Carlos Gomes' },
-    correctAnswerKey: 'A',
-  },
-  {
-    question: 'Qual o metal mais caro do mundo?',
-    options: { A: 'Ouro', B: 'Ródio', C: 'Platina', D: 'Paládio' },
-    correctAnswerKey: 'B',
-  },
-  {
-    question: 'Qual das alternativas abaixo é um dos sete pecados capitais?',
-    options: { A: 'Inveja', B: 'Ignorância', C: 'Egoísmo', D: 'Ganância' },
-    correctAnswerKey: 'A',
-  },
-  {
-    question: 'Em que ordem seletiva se encontram os golfinhos?',
-    options: { A: 'Peixes', B: 'Anfíbios', C: 'Cetáceos', D: 'Répteis' },
-    correctAnswerKey: 'C',
-  },
-  {
-    question: 'Qual o nome do pintor do quadro "Guernica"?',
-    options: { A: 'Pablo Picasso', B: 'Salvador Dalí', C: 'Van Gogh', D: 'Monet' },
-    correctAnswerKey: 'A',
-  },
-  {
-    question: 'Qual o plural de "cônsul"?',
-    options: { A: 'Cônsuls', B: 'Cônsules', C: 'Cônseis', D: 'Cônsul' },
-    correctAnswerKey: 'B',
-  },
-  {
-    question: 'Em que país foi construído o Muro de Berlim?',
-    options: { A: 'Estados Unidos', B: 'China', C: 'Alemanha', D: 'Rússia' },
-    correctAnswerKey: 'C',
-  },
-  {
-    question: 'Em que cidade ocorreu o maior acidente nuclear da história?',
-    options: { A: 'Hiroshima', B: 'Chernobyl', C: 'Fukushima', D: 'Nagasaki' },
-    correctAnswerKey: 'B',
-  },
-  {
-    question: 'Quem foi o primeiro homem a pisar na Lua?',
-    options: { A: 'Yuri Gagarin', B: 'Buzz Aldrin', C: 'Michael Collins', D: 'Neil Armstrong' },
-    correctAnswerKey: 'D',
-  },
-  {
-    question: 'Qual o nome do processo de divisão celular que origina os gametas?',
-    options: { A: 'Meiose', B: 'Mitose', C: 'Metáfase', D: 'Zigoto' },
-    correctAnswerKey: 'A',
-  },
-  {
-    question: 'Qual o ponto mais alto do Brasil?',
-    options: { A: 'Pico da Neblina', B: 'Pico Paraná', C: 'Monte Roraima', D: 'Pico da Bandeira' },
-    correctAnswerKey: 'A',
-  },
-  {
-    question: 'Qual a primeira mulher a ganhar um Prêmio Nobel?',
-    options: { A: 'Marie Curie', B: 'Madre Teresa', C: 'Valentina Tereshkova', D: 'Rosalind Franklin' },
-    correctAnswerKey: 'A',
-  },
-];
+// This file is intentionally left with only PRIZE_TIERS.
+// The questions are now generated dynamically by an AI flow.
