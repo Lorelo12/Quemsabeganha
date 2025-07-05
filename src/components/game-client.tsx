@@ -158,9 +158,10 @@ export default function GameClient() {
       } catch (error: any) {
         console.error("Firebase signup error:", error);
         const errorCode = error.code;
+
         if (errorCode === 'auth/configuration-not-found') {
             toast({ 
-                title: "Login Desabilitado", 
+                title: "Cadastro Desabilitado", 
                 description: "A configuração do Firebase está incorreta. Iniciando o jogo como convidado.", 
                 variant: "destructive" 
             });
