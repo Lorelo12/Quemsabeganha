@@ -8,21 +8,20 @@ import { getExpertsOpinion, type ExpertsOpinionOutput } from '@/ai/flows/experts
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction } from '@/components/ui/alert-dialog';
+import { Progress } from '@/components/ui/progress';
 
 import { useToast } from '@/hooks/use-toast';
 import { PRIZE_TIERS } from '@/lib/questions';
 import type { Question, LifelineState } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Crown, Layers, Users, GraduationCap, SkipForward, BarChart2 } from 'lucide-react';
+import { Loader2, Crown, Layers, Users, GraduationCap, SkipForward, CircleDollarSign } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
-import { PrizeLadder } from './prize-ladder';
 import { Logo } from './logo';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent } from './ui/card';
 
 type GameState = 'name_input' | 'playing' | 'game_over';
 type AnswerStatus = 'unanswered' | 'correct' | 'incorrect';
@@ -32,11 +31,11 @@ const nameSchema = z.object({
   name: z.string().min(2, 'O nome deve ter pelo menos 2 caracteres.').max(50, 'O nome é muito longo.'),
 });
 
-const answerButtonColors: { [key: string]: string } = {
-  A: 'bg-sky-200 hover:bg-sky-300 text-sky-900 border-sky-400',
-  B: 'bg-emerald-200 hover:bg-emerald-300 text-emerald-900 border-emerald-400',
-  C: 'bg-amber-200 hover:bg-amber-300 text-amber-900 border-amber-400',
-  D: 'bg-rose-200 hover:bg-rose-300 text-rose-900 border-rose-400',
+const answerButtonColors: { [key: string]: { gradient: string, border: string, text: string } } = {
+  A: { gradient: 'from-purple-500 to-indigo-600', border: 'border-purple-400', text: 'text-purple-200' },
+  B: { gradient: 'from-blue-400 to-cyan-500', border: 'border-blue-300', text: 'text-blue-100' },
+  C: { gradient: 'from-yellow-400 to-orange-500', border: 'border-yellow-300', text: 'text-yellow-100' },
+  D: { gradient: 'from-pink-500 to-red-600', border: 'border-pink-400', text: 'text-pink-100' },
 };
 
 
@@ -50,7 +49,6 @@ export default function GameClient() {
   const [answerStatus, setAnswerStatus] = useState<AnswerStatus>('unanswered');
   const [hostResponse, setHostResponse] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [flash, setFlash] = useState<string | null>(null);
   const { toast } = useToast();
 
   const [lifelines, setLifelines] = useState<LifelineState>({
@@ -116,8 +114,6 @@ export default function GameClient() {
 
     const isCorrect = answerKey === currentQuestion.correctAnswerKey;
     setAnswerStatus(isCorrect ? 'correct' : 'incorrect');
-    setFlash(isCorrect ? 'green' : 'red');
-    setTimeout(() => setFlash(null), 700);
 
     const nextPrize = PRIZE_TIERS[currentQuestionIndex].amount;
     const checkpointTier = [...PRIZE_TIERS].slice(0, currentQuestionIndex).reverse().find(p => p.isCheckpoint);
@@ -129,21 +125,22 @@ export default function GameClient() {
     } catch (error) {
       console.error(error);
       setHostResponse(isCorrect ? 'Resposta certa!' : 'Resposta errada.');
-    } finally {
-      setIsProcessing(false);
     }
   };
-
-  const handleNext = () => {
-    if (answerStatus === 'correct') {
-      if (currentQuestionIndex === TOTAL_QUESTIONS - 1) {
-        setGameState('game_over');
-      } else {
-        fetchQuestion(currentQuestionIndex + 1);
-      }
-    } else {
-      setGameState('game_over');
-    }
+  
+  const handleNextWithDelay = () => {
+    setTimeout(() => {
+        setIsProcessing(false);
+        if (answerStatus === 'correct') {
+            if (currentQuestionIndex === TOTAL_QUESTIONS - 1) {
+                setGameState('game_over');
+            } else {
+                fetchQuestion(currentQuestionIndex + 1);
+            }
+        } else {
+            setGameState('game_over');
+        }
+    }, 1500); // 1.5 second delay to show host response
   };
 
   const restartGame = () => {
@@ -186,7 +183,7 @@ export default function GameClient() {
         setDialogContent('audience');
       } catch (error) {
          toast({ title: "Erro ao consultar a plateia.", variant: "destructive" });
-         setLifelines(prev => ({...prev, audience: true})); // Give it back
+         setLifelines(prev => ({...prev, audience: true}));
       } finally {
         setIsProcessing(false);
       }
@@ -203,165 +200,172 @@ export default function GameClient() {
         setDialogContent('experts');
       } catch (error) {
          toast({ title: "Erro ao consultar os convidados.", variant: "destructive" });
-         setLifelines(prev => ({...prev, experts: true})); // Give it back
+         setLifelines(prev => ({...prev, experts: true}));
       } finally {
         setIsProcessing(false);
       }
     }
   };
+  
+  const renderGameScreen = () => {
+     if (isProcessing && !currentQuestion) {
+        return (
+           <div className="flex flex-col items-center justify-center gap-4 text-secondary h-96">
+             <Loader2 className="h-16 w-16 animate-spin" />
+             <p className="text-2xl font-bold text-shadow-neon-yellow">Preparando a próxima pergunta...</p>
+           </div>
+        );
+      }
+      
+      if (!currentQuestion) return null;
 
-  if (gameState === 'name_input') {
-    return (
-      <div className="flex flex-col items-center justify-center text-center h-screen w-full p-4">
-        <Logo />
-        <p className="max-w-xl text-lg text-foreground/80 my-8">
-          Para começar sua jornada rumo ao prêmio fictício de R$ 1 Milhão, por favor, diga-nos seu nome.
-        </p>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(data => startGame(data.name))} className="flex flex-col items-center gap-4 w-full max-w-sm">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem className="w-full">
-                  <FormControl>
-                    <Input placeholder="Seu nome..." autoComplete="off" {...field} className="bg-card text-center text-lg h-12" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" size="lg" className="text-xl font-bold px-12 py-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-accent/50 border-2 border-accent/20 animate-pulse-slow">
-              Confirmar
+      return (
+        <div className="w-full flex flex-col items-center gap-4 animate-fade-in">
+           <div className="grid grid-cols-12 gap-4 w-full">
+            <div className="col-span-10 flex flex-col gap-6">
+                <Card className="text-center bg-black/30 border-2 border-accent/50 rounded-xl p-6">
+                    <p className="text-2xl md:text-3xl font-bold text-white">{currentQuestion.question}</p>
+                </Card>
+
+                <div className="grid grid-cols-2 gap-4 relative">
+                 <div className="absolute inset-0 flex items-center justify-center">
+                    <CircleDollarSign className="w-20 h-20 text-primary/50" />
+                 </div>
+                  {Object.entries(currentQuestion.options).map(([key, value]) => {
+                    const isSelected = selectedAnswer === key;
+                    const isCorrect = currentQuestion.correctAnswerKey === key;
+                    const isDisabled = disabledOptions.includes(key);
+                    
+                    const buttonColor = answerButtonColors[key as keyof typeof answerButtonColors];
+
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => handleAnswer(key)}
+                        disabled={selectedAnswer !== null || isProcessing || isDisabled}
+                        className={cn(
+                          "z-10 flex items-center gap-4 p-4 rounded-full border-2 text-lg font-bold transition-all duration-300 transform hover:scale-105",
+                          "disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none",
+                          isDisabled && "opacity-30 bg-gray-700 !border-gray-600",
+                          !selectedAnswer && `bg-gradient-to-r ${buttonColor.gradient} ${buttonColor.border}`,
+                          isSelected && isCorrect && "bg-green-500 border-green-300 animate-pulse ring-4 ring-white",
+                          isSelected && !isCorrect && "bg-red-500 border-red-300 animate-pulse ring-4 ring-white",
+                          selectedAnswer && !isSelected && !isCorrect && "opacity-40"
+                        )}
+                      >
+                        <span className={cn("flex items-center justify-center h-8 w-8 rounded-full font-black text-white", buttonColor.gradient)}>{key}</span>
+                        <span className="text-white">{value}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+            </div>
+            <div className="col-span-2 flex flex-col justify-around items-center gap-4 text-center">
+                 <button onClick={handleUseSkip} disabled={lifelines.skip === 0 || !!selectedAnswer} className="flex flex-col items-center gap-1 text-secondary disabled:opacity-40">
+                    <SkipForward className="w-10 h-10"/>
+                    <span className="font-semibold">Pular ({lifelines.skip})</span>
+                 </button>
+                 <button onClick={handleUseExperts} disabled={!lifelines.experts || !!selectedAnswer} className="flex flex-col items-center gap-1 text-primary disabled:opacity-40">
+                    <GraduationCap className="w-10 h-10"/>
+                    <span className="font-semibold">Convidado</span>
+                 </button>
+                 <button onClick={handleUseCards} disabled={!lifelines.cards || !!selectedAnswer} className="flex flex-col items-center gap-1 text-cyan-400 disabled:opacity-40">
+                    <Layers className="w-10 h-10"/>
+                    <span className="font-semibold">Cartas</span>
+                 </button>
+                 <button onClick={handleUseAudience} disabled={!lifelines.audience || !!selectedAnswer} className="flex flex-col items-center gap-1 text-orange-400 disabled:opacity-40">
+                    <Users className="w-10 h-10"/>
+                    <span className="font-semibold">Platéia</span>
+                 </button>
+            </div>
+           </div>
+           
+           <Progress value={((currentQuestionIndex + 1) / TOTAL_QUESTIONS) * 100} className="w-full h-4 bg-black/30 border border-border" indicatorClassName="bg-gradient-to-r from-orange-400 via-yellow-400 to-pink-500" />
+            
+           {selectedAnswer && (
+              <div className="w-full text-center mt-4 animate-fade-in">
+                  <p className="text-2xl font-bold text-shadow-neon-yellow">{hostResponse}</p>
+                  {isProcessing && handleNextWithDelay()}
+              </div>
+            )}
+        </div>
+      );
+  }
+
+  const renderContent = () => {
+    switch(gameState) {
+      case 'name_input':
+        return (
+          <div className="flex flex-col items-center justify-center text-center w-full max-w-2xl p-4">
+            <Logo />
+            <p className="max-w-xl text-xl text-white/80 my-8">
+              Para começar sua jornada rumo ao prêmio fictício de R$ 1 Milhão, por favor, diga-nos seu nome.
+            </p>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(data => startGame(data.name))} className="flex flex-col items-center gap-4 w-full max-w-sm">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem className="w-full">
+                      <FormControl>
+                        <Input placeholder="Seu nome..." autoComplete="off" {...field} className="bg-black/30 border-2 border-primary/50 text-center text-lg h-14 ring-offset-background focus:ring-2 focus:ring-ring" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" size="lg" className="text-xl font-bold px-12 py-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/50 border-2 border-white/30 animate-pulse-slow">
+                  COMEÇAR
+                </Button>
+              </form>
+            </Form>
+          </div>
+        );
+      case 'game_over':
+        const isWinner = answerStatus === 'correct' && currentQuestionIndex === TOTAL_QUESTIONS - 1;
+        const checkpointTier = [...PRIZE_TIERS].slice(0, isWinner ? TOTAL_QUESTIONS : currentQuestionIndex).reverse().find(p => p.isCheckpoint);
+        const prizeWon = isWinner ? PRIZE_TIERS[TOTAL_QUESTIONS - 1].amount : (checkpointTier ? checkpointTier.amount : 0);
+        
+        return (
+          <div className="flex flex-col items-center justify-center text-center w-full max-w-2xl animate-fade-in">
+            <Crown className="h-24 w-24 text-secondary animate-pulse-slow" style={{ filter: 'drop-shadow(0 0 15px hsl(var(--secondary)))' }}/>
+            <h1 className="text-4xl md:text-6xl font-black mt-4 text-shadow-neon-yellow">Fim de Jogo!</h1>
+            <p className="text-2xl mt-4 text-white/80">
+              {isWinner ? `Parabéns, ${playerName}!` : `Que pena, ${playerName}!`}
+            </p>
+            <p className="max-w-xl text-lg text-white/80 my-8">
+              {isWinner 
+                ? `Você é a nova milionária do nosso quiz! Você ganhou o prêmio máximo de R$ ${prizeWon.toLocaleString('pt-BR')},00 (fictícios)! 👑`
+                : `Você leva para casa o prêmio garantido de R$ ${prizeWon.toLocaleString('pt-BR')},00 (fictícios).`
+              }
+            </p>
+             <Button onClick={restartGame} size="lg" className="animate-pulse-slow text-xl font-bold px-12 py-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/50 border-2 border-white/30">
+              Jogar Novamente 💖
             </Button>
-          </form>
-        </Form>
-      </div>
-    );
+          </div>
+        );
+      case 'playing':
+        return (
+            <div className="flex flex-col items-center gap-4 w-full">
+                <Logo />
+                {renderGameScreen()}
+            </div>
+        );
+    }
   }
-
-  if (gameState === 'game_over') {
-    const isWinner = answerStatus === 'correct' && currentQuestionIndex === TOTAL_QUESTIONS - 1;
-    const checkpointTier = [...PRIZE_TIERS].slice(0, isWinner ? TOTAL_QUESTIONS : currentQuestionIndex).reverse().find(p => p.isCheckpoint);
-    const prizeWon = isWinner ? PRIZE_TIERS[TOTAL_QUESTIONS - 1].amount : (checkpointTier ? checkpointTier.amount : 0);
-    
-    return (
-      <div className="flex flex-col items-center justify-center text-center h-screen w-full p-4 animate-fade-in">
-        <Crown className="h-24 w-24 text-accent animate-pulse-slow" />
-        <h1 className="text-4xl md:text-6xl font-bold mt-4">Fim de Jogo!</h1>
-        <p className="text-2xl mt-4 text-foreground/80">
-          {isWinner ? `Parabéns, ${playerName}!` : `Que pena, ${playerName}!`}
-        </p>
-        <p className="max-w-xl text-lg text-foreground/80 my-8">
-          {isWinner 
-            ? `Você é a nova milionária do nosso quiz! Você ganhou o prêmio máximo de R$ ${prizeWon.toLocaleString('pt-BR')},00 (fictícios)! 👑`
-            : `Você leva para casa o prêmio garantido de R$ ${prizeWon.toLocaleString('pt-BR')},00 (fictícios).`
-          }
-        </p>
-         <Button onClick={restartGame} size="lg" className="animate-pulse-slow text-xl font-bold px-12 py-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-accent/50 border-2 border-accent/20">
-          Jogar Novamente 💖
-        </Button>
-      </div>
-    );
-  }
-
-  const canUseLifeline = answerStatus === 'unanswered' && !isProcessing;
 
   return (
-    <TooltipProvider>
-    <div className={cn(
-        "grid md:grid-cols-12 gap-6 w-full max-w-7xl mx-auto p-4 min-h-screen transition-all duration-300",
-        flash === 'green' && 'shadow-[inset_0_0_0_8px_theme(colors.green.400)] rounded-2xl',
-        flash === 'red' && 'shadow-[inset_0_0_0_8px_theme(colors.red.400)] rounded-2xl'
-      )}>
-      <main className="md:col-span-8 lg:col-span-9 flex flex-col justify-center items-center gap-6 p-4 rounded-lg">
-        {isProcessing && !currentQuestion && (
-           <div className="flex flex-col items-center gap-4 text-primary-foreground">
-             <Loader2 className="h-12 w-12 animate-spin" />
-             <p className="text-xl">Nossa produção está preparando a pergunta...</p>
-           </div>
-        )}
-        {currentQuestion && (
-          <div className="w-full max-w-3xl flex flex-col gap-6 animate-fade-in">
-            <Card className="text-center shadow-xl border-2 border-primary/20 bg-card/80 backdrop-blur-sm" >
-              <CardHeader>
-                <CardTitle className="text-lg md:text-xl font-normal text-muted-foreground">
-                  Pergunta {currentQuestionIndex + 1} <span className="font-bold text-primary-foreground">Valendo R$ {PRIZE_TIERS[currentQuestionIndex].label}</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl md:text-3xl font-bold text-foreground">{currentQuestion.question}</p>
-              </CardContent>
-            </Card>
-
-            <div className="flex justify-center gap-4 my-4">
-              <Tooltip>
-                <TooltipTrigger asChild><Button variant="outline" size="lg" onClick={handleUseCards} disabled={!lifelines.cards || !canUseLifeline} className="disabled:opacity-40 w-16 h-16 rounded-full"><Layers className="w-8 h-8"/></Button></TooltipTrigger>
-                <TooltipContent><p>Cartas: Remove 2 opções incorretas.</p></TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild><Button variant="outline" size="lg" onClick={handleUseAudience} disabled={!lifelines.audience || !canUseLifeline} className="disabled:opacity-40 w-16 h-16 rounded-full"><Users className="w-8 h-8"/></Button></TooltipTrigger>
-                <TooltipContent><p>Placas: Mostra a opinião da plateia.</p></TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild><Button variant="outline" size="lg" onClick={handleUseExperts} disabled={!lifelines.experts || !canUseLifeline} className="disabled:opacity-40 w-16 h-16 rounded-full"><GraduationCap className="w-8 h-8"/></Button></TooltipTrigger>
-                <TooltipContent><p>Convidados: Pede ajuda aos universitários.</p></TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild><Button variant="outline" size="lg" onClick={handleUseSkip} disabled={lifelines.skip === 0 || !canUseLifeline} className="disabled:opacity-40 w-16 h-16 rounded-full"><SkipForward className="w-8 h-8"/> ({lifelines.skip})</Button></TooltipTrigger>
-                <TooltipContent><p>Pular: Pula para a próxima pergunta.</p></TooltipContent>
-              </Tooltip>
+    <>
+      <div className="w-full max-w-4xl mx-auto p-4 md:p-6 rounded-3xl bg-black/30">
+        <div className="p-1 bg-gradient-to-br from-neon-orange via-neon-pink to-neon-blue rounded-2xl">
+            <div className="bg-dark-bg p-6 rounded-xl min-h-[600px] flex items-center justify-center">
+                {renderContent()}
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {Object.entries(currentQuestion.options).map(([key, value]) => {
-                const isSelected = selectedAnswer === key;
-                const isCorrect = currentQuestion.correctAnswerKey === key;
-                const isDisabled = disabledOptions.includes(key);
-                
-                return (
-                  <Button
-                    key={key}
-                    className={cn(
-                      "justify-start h-auto p-4 text-lg font-semibold whitespace-normal text-left shadow-md border-b-4 transform hover:-translate-y-1 transition-all",
-                      !selectedAnswer && answerButtonColors[key],
-                      selectedAnswer && isCorrect && 'bg-green-400 border-green-600 text-white animate-pulse',
-                      selectedAnswer && isSelected && !isCorrect && 'bg-red-400 border-red-600 text-white',
-                      selectedAnswer && !isSelected && !isCorrect && 'opacity-50',
-                      isDisabled && "opacity-40 !bg-gray-300 cursor-not-allowed border-gray-400",
-                    )}
-                    onClick={() => handleAnswer(key)}
-                    disabled={selectedAnswer !== null || isProcessing || isDisabled}
-                  >
-                    <span className="font-bold mr-3">{key}:</span> {value}
-                  </Button>
-                );
-              })}
-            </div>
-
-            {selectedAnswer && (
-              <Card className={cn(
-                  "text-center shadow-lg animate-fade-in border-2 bg-card/80 backdrop-blur-sm",
-                  answerStatus === 'correct' && 'border-green-500',
-                  answerStatus === 'incorrect' && 'border-red-500',
-              )}>
-                <CardContent className="p-4 flex flex-col items-center gap-4">
-                  <p className="text-lg font-medium">{hostResponse}</p>
-                  <Button onClick={handleNext}>
-                    {answerStatus === 'correct' ? (currentQuestionIndex === TOTAL_QUESTIONS - 1 ? 'Ver prêmio final!' : 'Próxima Pergunta') : 'Ver Resultado Final'}
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        )}
-      </main>
-      <aside className="hidden md:block md:col-span-4 lg:col-span-3 py-4">
-        <PrizeLadder prizes={PRIZE_TIERS} currentQuestionIndex={currentQuestionIndex} />
-        <p className="text-center text-xs text-muted-foreground mt-4">*Este jogo é apenas para fins de entretenimento. Os valores são fictícios.</p>
-      </aside>
-       <AlertDialog open={dialogContent !== null} onOpenChange={() => setDialogContent(null)}>
-        <AlertDialogContent className="bg-card/80 backdrop-blur-sm">
+        </div>
+      </div>
+      <AlertDialog open={dialogContent !== null} onOpenChange={() => setDialogContent(null)}>
+        <AlertDialogContent>
           {dialogContent === 'audience' && audienceData && (
             <>
               <AlertDialogHeader>
@@ -407,7 +411,6 @@ export default function GameClient() {
           )}
         </AlertDialogContent>
       </AlertDialog>
-    </div>
-    </TooltipProvider>
+    </>
   );
 }

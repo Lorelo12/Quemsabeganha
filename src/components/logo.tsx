@@ -1,20 +1,14 @@
-import { Clover } from 'lucide-react';
-
 export function Logo() {
   return (
-    <div className="flex flex-col items-center justify-center gap-4 select-none">
-      <Clover className="h-20 w-20 text-accent animate-pulse-slow" style={{ filter: 'drop-shadow(0 0 15px hsl(var(--accent) / 0.8))' }} />
-      <h1 className="text-5xl md:text-7xl font-black tracking-wider" style={{ 
-        color: 'white',
-        textShadow: `
-          -2px -2px 0 hsl(var(--accent)),  
-           2px -2px 0 hsl(var(--accent)),
-          -2px  2px 0 hsl(var(--accent)),
-           2px  2px 0 hsl(var(--accent)),
-           4px 4px 8px hsla(var(--foreground), 0.2)`
-       }}>
-        Quiz Milionário
-      </h1>
+    <div className="relative mb-4 select-none flex justify-center">
+      <div className="relative inline-block bg-neon-pink p-2 pb-4 rounded-t-lg rounded-b-md shadow-lg"
+           style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 80% 85%, 20% 85%, 0 100%)' }}
+      >
+        <h1 className="text-4xl md:text-5xl font-black tracking-wider uppercase">
+          <span className="text-white">Quiz</span>
+          <span className="block text-neon-yellow text-shadow-neon-yellow -mt-2">Milionário</span>
+        </h1>
+      </div>
     </div>
   );
 }
