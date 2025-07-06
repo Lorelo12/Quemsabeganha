@@ -84,8 +84,16 @@ export default function GameClient() {
   
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[] | null>(null);
   const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
+  
+  const [isAiConfigured, setIsAiConfigured] = useState(true);
 
   const currentQuestion = quizQuestions[currentQuestionIndex] ?? null;
+  
+  useEffect(() => {
+    // This check is for the Google AI key, which is needed to generate questions.
+    const keyIsPresent = !!process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
+    setIsAiConfigured(keyIsPresent);
+  }, []);
 
   const resetLifelines = () => {
     setLifelines({ skip: 3, cards: true, audience: true, experts: true });
@@ -122,7 +130,7 @@ export default function GameClient() {
   }, [toast]);
   
   const handleGuestStart = () => {
-    if (isProcessing) return;
+    if (isProcessing || !isAiConfigured) return;
     startGame();
   };
 
@@ -148,19 +156,24 @@ export default function GameClient() {
         }
       } catch (error: any) {
         const errorCode = error.code;
-        let friendlyMessage = "Ocorreu um erro ao criar a conta.";
+        let friendlyMessage;
         
-        if (errorCode === 'auth/email-already-in-use') {
-          friendlyMessage = "Este e-mail já está em uso. Tente fazer login.";
-        } else if (errorCode === 'auth/weak-password') {
-          friendlyMessage = "A senha é muito fraca. Tente uma com pelo menos 6 caracteres.";
-        } else if (errorCode === 'auth/operation-not-allowed') {
-            friendlyMessage = "Cadastro por Email/Senha não está ativado. Habilite-o no seu Console do Firebase.";
-        } else if (errorCode === 'auth/configuration-not-found') {
-            friendlyMessage = "Falha na configuração do Firebase. A chave de API (apiKey) no arquivo .env parece estar incorreta.";
-            toast({ title: "Erro no Cadastro", description: friendlyMessage, variant: "destructive" });
-            startGame(); // Fallback to guest mode
-            return;
+        switch (errorCode) {
+            case 'auth/email-already-in-use':
+                friendlyMessage = "Este e-mail já está em uso. Tente fazer login.";
+                break;
+            case 'auth/weak-password':
+                friendlyMessage = "A senha é muito fraca. Use pelo menos 6 caracteres.";
+                break;
+            case 'auth/operation-not-allowed':
+                friendlyMessage = "Cadastro por Email/Senha não está ativado no seu projeto Firebase.";
+                break;
+            case 'auth/invalid-email':
+                friendlyMessage = "O e-mail fornecido não é válido.";
+                break;
+            default:
+                friendlyMessage = "Ocorreu um erro inesperado ao criar a conta.";
+                console.error(`Firebase signup error: ${errorCode}`, error);
         }
         
         toast({ title: "Erro no Cadastro", description: friendlyMessage, variant: "destructive" });
@@ -180,15 +193,20 @@ export default function GameClient() {
         startGame();
       } catch (error: any) {
         const errorCode = error.code;
-        
-        let friendlyMessage = "Ocorreu um erro ao fazer login.";
-        if (errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password' || errorCode === 'auth/invalid-credential') {
-            friendlyMessage = "Email ou senha incorretos.";
-        } else if (errorCode === 'auth/configuration-not-found') {
-            friendlyMessage = "Falha na configuração do Firebase. Verifique se as chaves em seu arquivo .env estão corretas.";
-            toast({ title: "Erro no Login", description: friendlyMessage, variant: "destructive" });
-            startGame(); // Fallback to guest mode
-            return;
+        let friendlyMessage;
+
+        switch (errorCode) {
+            case 'auth/user-not-found':
+            case 'auth/wrong-password':
+            case 'auth/invalid-credential':
+                friendlyMessage = "Email ou senha incorretos.";
+                break;
+            case 'auth/invalid-email':
+                friendlyMessage = "O e-mail fornecido não é válido.";
+                break;
+            default:
+                friendlyMessage = "Ocorreu um erro inesperado ao fazer login.";
+                console.error(`Firebase login error: ${errorCode}`, error);
         }
 
         toast({ title: "Erro no Login", description: friendlyMessage, variant: "destructive" });
@@ -529,6 +547,19 @@ export default function GameClient() {
         return (
            <div className="flex flex-col items-center justify-center text-center w-full max-w-4xl p-4 gap-8 animate-fade-in">
             <Logo />
+             {!isAiConfigured && (
+                <Alert variant="destructive" className="mb-6 text-left">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Configuração da IA Incompleta</AlertTitle>
+                    <AlertDescription>
+                        A chave da API do Google está faltando. Para o jogo funcionar, você precisa obter uma chave no{' '}
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline font-bold hover:text-destructive-foreground">
+                            Google AI Studio
+                        </a>
+                        {' '}e colá-la no arquivo <strong>.env</strong> na variável <code>NEXT_PUBLIC_GOOGLE_API_KEY</code>.
+                    </AlertDescription>
+                </Alert>
+            )}
             <p className="text-2xl text-white/80">
               Mostre que você sabe tudo neste jogo de perguntas e respostas!<br/>Responda a 16 perguntas para ganhar R$ 1.000.000!
             </p>
@@ -539,7 +570,7 @@ export default function GameClient() {
                     <CardHeader className="p-0 pt-6 mb-4">
                         <CardTitle className="text-2xl">Jogar como Convidado</CardTitle>
                     </CardHeader>
-                    <Button onClick={handleGuestStart} size="lg" className="w-full font-bold text-lg" disabled={isProcessing}>
+                    <Button onClick={handleGuestStart} size="lg" className="w-full font-bold text-lg" disabled={isProcessing || !isAiConfigured}>
                         {isProcessing ? <Loader2 className="animate-spin" /> : "Jogar Agora"}
                     </Button>
                     <div className="mt-4 text-center text-sm text-white/70">
