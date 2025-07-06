@@ -11,6 +11,8 @@ import {
   signInWithEmailAndPassword, 
   signOut,
   updateProfile,
+  GoogleAuthProvider,
+  signInWithPopup,
 } from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
@@ -49,6 +51,15 @@ const answerButtonColors: { [key: string]: { gradient: string } } = {
   C: { gradient: 'from-yellow-400 to-orange-500' },
   D: { gradient: 'from-pink-500 to-red-600' },
 };
+
+const GoogleIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="h-5 w-5">
+      <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" />
+      <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" />
+      <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z" />
+      <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571l6.19,5.238C42.021,35.591,44,30.138,44,24C44,22.659,43.862,21.35,43.611,20.083z" />
+    </svg>
+);
 
 
 export default function GameClient() {
@@ -173,7 +184,6 @@ export default function GameClient() {
                 break;
             default:
                 friendlyMessage = "Ocorreu um erro inesperado ao criar a conta.";
-                console.error(`Firebase signup error: ${errorCode}`, error);
         }
         
         toast({ title: "Erro no Cadastro", description: friendlyMessage, variant: "destructive" });
@@ -206,13 +216,37 @@ export default function GameClient() {
                 break;
             default:
                 friendlyMessage = "Ocorreu um erro inesperado ao fazer login.";
-                console.error(`Firebase login error: ${errorCode}`, error);
         }
 
         toast({ title: "Erro no Login", description: friendlyMessage, variant: "destructive" });
       } finally {
         setIsProcessing(false);
       }
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    if (isProcessing || !isFirebaseConfigured) return;
+
+    setIsProcessing(true);
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth!, provider);
+      const user = result.user;
+      setPlayerName(user.displayName || 'Jogador(a)');
+      toast({ title: "Login com Google realizado!", description: `Bem-vindo(a), ${user.displayName}!` });
+      startGame();
+    } catch (error: any) {
+      const errorCode = error.code;
+      let friendlyMessage = "Ocorreu um erro ao fazer login com o Google.";
+      if (errorCode === 'auth/popup-closed-by-user') {
+        friendlyMessage = "A janela de login foi fechada. Tente novamente.";
+      } else if (errorCode === 'auth/account-exists-with-different-credential') {
+        friendlyMessage = "Já existe uma conta com este e-mail. Tente fazer login com outro método.";
+      }
+      toast({ title: "Erro no Login", description: friendlyMessage, variant: "destructive" });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -547,19 +581,7 @@ export default function GameClient() {
         return (
            <div className="flex flex-col items-center justify-center text-center w-full max-w-4xl p-4 gap-8 animate-fade-in">
             <Logo />
-             {!isAiConfigured && (
-                <Alert variant="destructive" className="mb-6 text-left">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Configuração da IA Incompleta</AlertTitle>
-                    <AlertDescription>
-                        A chave da API do Google está faltando. Para o jogo funcionar, você precisa obter uma chave no{' '}
-                        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline font-bold hover:text-destructive-foreground">
-                            Google AI Studio
-                        </a>
-                        {' '}e colá-la no arquivo <strong>.env</strong> na variável <code>NEXT_PUBLIC_GOOGLE_API_KEY</code>.
-                    </AlertDescription>
-                </Alert>
-            )}
+            
             <p className="text-2xl text-white/80">
               Mostre que você sabe tudo neste jogo de perguntas e respostas!<br/>Responda a 16 perguntas para ganhar R$ 1.000.000!
             </p>
@@ -568,19 +590,24 @@ export default function GameClient() {
                 {authView === 'guest' ? (
                 <>
                     <CardHeader className="p-0 pt-6 mb-4">
-                        <CardTitle className="text-2xl">Jogar como Convidado</CardTitle>
+                        <CardTitle className="text-2xl">Comece a Jogar</CardTitle>
                     </CardHeader>
-                    <Button onClick={handleGuestStart} size="lg" className="w-full font-bold text-lg" disabled={isProcessing || !isAiConfigured}>
-                        {isProcessing ? <Loader2 className="animate-spin" /> : "Jogar Agora"}
-                    </Button>
+                    <div className="space-y-4">
+                      <Button onClick={handleGuestStart} size="lg" className="w-full font-bold text-lg" disabled={isProcessing || !isAiConfigured}>
+                          {isProcessing ? <Loader2 className="animate-spin" /> : "Jogar como Convidado"}
+                      </Button>
+                      <Button variant="outline" className="w-full font-bold" onClick={handleGoogleSignIn} disabled={isProcessing || !isFirebaseConfigured}>
+                          <GoogleIcon /> Entrar com Google
+                      </Button>
+                    </div>
                     <div className="mt-4 text-center text-sm text-white/70">
-                        <p>Para seu nome aparecer no ranking...</p>
+                        <p>Ou, para usar apelido e senha...</p>
                         <Button
                             variant="link"
                             className="text-secondary p-0 h-auto text-sm"
                             onClick={() => setAuthView('login')}
                         >
-                            Crie uma conta ou faça login &rarr;
+                            Crie uma conta ou faça login com email &rarr;
                         </Button>
                     </div>
                 </>
@@ -595,6 +622,21 @@ export default function GameClient() {
                           </AlertDescription>
                       </Alert>
                     )}
+                    <div className="space-y-4">
+                        <Button variant="outline" className="w-full font-bold" onClick={handleGoogleSignIn} disabled={isProcessing || !isFirebaseConfigured}>
+                            <GoogleIcon /> Entrar com Google
+                        </Button>
+                        <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                                <span className="w-full border-t border-border/50" />
+                            </div>
+                            <div className="relative flex justify-center text-xs uppercase">
+                                <span className="bg-card px-2 text-muted-foreground">
+                                    Ou use seu email
+                                </span>
+                            </div>
+                        </div>
+                    </div>
                     <Tabs value={authTab} onValueChange={(value) => setAuthTab(value as any)} className="w-full">
                         <TabsList className="grid w-full grid-cols-2 bg-muted/50">
                             <TabsTrigger value="signup">Criar Conta</TabsTrigger>
@@ -602,7 +644,7 @@ export default function GameClient() {
                         </TabsList>
                         <TabsContent value="signup">
                         <CardHeader className="p-0 pt-6 mb-4">
-                            <CardTitle className="text-2xl">Crie sua Conta</CardTitle>
+                            <CardTitle className="text-xl">Crie sua Conta</CardTitle>
                             <CardDescription>Crie seu apelido único para entrar no ranking!</CardDescription>
                         </CardHeader>
                             <form onSubmit={handleStartGame} className="space-y-4">
@@ -625,7 +667,7 @@ export default function GameClient() {
                         </TabsContent>
                         <TabsContent value="login">
                             <CardHeader className="p-0 pt-6 mb-4">
-                            <CardTitle className="text-2xl">Bem-vindo(a) de volta!</CardTitle>
+                            <CardTitle className="text-xl">Bem-vindo(a) de volta!</CardTitle>
                             <CardDescription>Faça login para continuar sua jornada.</CardDescription>
                         </CardHeader>
                             <form onSubmit={handleStartGame} className="space-y-4">
@@ -645,7 +687,7 @@ export default function GameClient() {
                     </Tabs>
                     <div className="mt-4 text-center">
                         <Button variant="link" className="text-secondary p-0 h-auto" onClick={() => setAuthView('guest')}>
-                            &larr; Voltar para jogar como convidado
+                            &larr; Voltar
                         </Button>
                     </div>
                 </>
