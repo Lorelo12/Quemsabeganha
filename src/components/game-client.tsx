@@ -85,15 +85,8 @@ export default function GameClient() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[] | null>(null);
   const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
 
-  const [isAiConfigured, setIsAiConfigured] = useState(true);
-
   const currentQuestion = quizQuestions[currentQuestionIndex] ?? null;
 
-  useEffect(() => {
-    const keyIsPresent = !!process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
-    setIsAiConfigured(keyIsPresent);
-  }, []);
-  
   const resetLifelines = () => {
     setLifelines({ skip: 3, cards: true, audience: true, experts: true });
     setDisabledOptions([]);
@@ -113,15 +106,13 @@ export default function GameClient() {
     try {
         const newQuestions = await generateQuiz();
         if (newQuestions.length !== TOTAL_QUESTIONS) {
-            console.error("Generated wrong number of questions:", newQuestions.length);
             throw new Error("Failed to generate the correct number of questions.");
         }
         setQuizQuestions(newQuestions);
     } catch (error) {
-        console.error("Failed to fetch quiz:", error);
         toast({
             title: "Erro na Geração do Quiz",
-            description: "Não foi possível criar as perguntas do quiz. Verifique sua chave de API do Google e tente recomeçar o jogo.",
+            description: "Não foi possível criar as perguntas. Verifique sua chave de API do Google e tente recomeçar.",
             variant: "destructive",
         });
         setGameState('game_over');
@@ -131,13 +122,13 @@ export default function GameClient() {
   }, [toast]);
   
   const handleGuestStart = () => {
-    if (isProcessing || !isAiConfigured) return;
+    if (isProcessing) return;
     startGame();
   };
 
   const handleStartGame = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isProcessing || !isAiConfigured || !isFirebaseConfigured) return;
+    if (isProcessing || !isFirebaseConfigured) return;
     
     setIsProcessing(true);
 
@@ -157,16 +148,19 @@ export default function GameClient() {
         }
       } catch (error: any) {
         const errorCode = error.code;
-        let friendlyMessage = "Ocorreu um erro ao criar a conta. Verifique suas credenciais e a conexão com a internet.";
+        let friendlyMessage = "Ocorreu um erro ao criar a conta.";
         
         if (errorCode === 'auth/email-already-in-use') {
           friendlyMessage = "Este e-mail já está em uso. Tente fazer login.";
         } else if (errorCode === 'auth/weak-password') {
           friendlyMessage = "A senha é muito fraca. Tente uma com pelo menos 6 caracteres.";
         } else if (errorCode === 'auth/operation-not-allowed') {
-            friendlyMessage = "Cadastro por Email/Senha não está ativado. Habilite-o no seu Console do Firebase em Autenticação > Métodos de login.";
+            friendlyMessage = "Cadastro por Email/Senha não está ativado. Habilite-o no seu Console do Firebase.";
         } else if (errorCode === 'auth/configuration-not-found') {
-            friendlyMessage = "Falha na configuração do Firebase. A chave de API (apiKey) no arquivo .env parece estar incorreta. Verifique a chave no seu console do Firebase e tente novamente.";
+            friendlyMessage = "Falha na configuração do Firebase. A chave de API (apiKey) no arquivo .env parece estar incorreta.";
+            toast({ title: "Erro no Cadastro", description: friendlyMessage, variant: "destructive" });
+            startGame(); // Fallback to guest mode
+            return;
         }
         
         toast({ title: "Erro no Cadastro", description: friendlyMessage, variant: "destructive" });
@@ -187,11 +181,14 @@ export default function GameClient() {
       } catch (error: any) {
         const errorCode = error.code;
         
-        let friendlyMessage = "Ocorreu um erro ao fazer login. Verifique suas credenciais e a conexão.";
+        let friendlyMessage = "Ocorreu um erro ao fazer login.";
         if (errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password' || errorCode === 'auth/invalid-credential') {
             friendlyMessage = "Email ou senha incorretos.";
         } else if (errorCode === 'auth/configuration-not-found') {
             friendlyMessage = "Falha na configuração do Firebase. Verifique se as chaves em seu arquivo .env estão corretas.";
+            toast({ title: "Erro no Login", description: friendlyMessage, variant: "destructive" });
+            startGame(); // Fallback to guest mode
+            return;
         }
 
         toast({ title: "Erro no Login", description: friendlyMessage, variant: "destructive" });
@@ -231,7 +228,6 @@ export default function GameClient() {
               });
           if (error) throw error;
       } catch (error) {
-          console.error('Error saving score:', error);
           toast({ title: "Erro ao salvar pontuação no ranking.", variant: "destructive" });
       }
   }, [toast]);
@@ -305,7 +301,6 @@ export default function GameClient() {
       const res = await gameShowHost({ playerName: playerName || "Jogador(a)", question: currentQuestion.question, answer: answerKey, isCorrect: isCorrect, currentPrize: nextPrize, prizeOnFailure: prizeOnFailure });
       setHostResponse(res.response);
     } catch (error) {
-      console.error(error);
       setHostResponse(isCorrect ? 'Resposta certa!' : 'Resposta errada.');
     }
   };
@@ -400,8 +395,6 @@ export default function GameClient() {
       return;
     }
     
-    console.log("Feedback submitted:", feedbackText);
-
     setInfoDialog(null);
     setFeedbackText('');
     
@@ -427,7 +420,6 @@ export default function GameClient() {
         if (error) throw error;
         setLeaderboard(data);
       } catch (error) {
-        console.error('Error fetching leaderboard:', error);
         setLeaderboard([]);
         toast({ title: "Erro ao carregar o ranking.", variant: "destructive" });
       } finally {
@@ -537,19 +529,6 @@ export default function GameClient() {
         return (
            <div className="flex flex-col items-center justify-center text-center w-full max-w-4xl p-4 gap-8 animate-fade-in">
             <Logo />
-            {!isAiConfigured && (
-                <Alert variant="destructive" className="mb-6 text-left">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Configuração da IA Incompleta</AlertTitle>
-                    <AlertDescription>
-                        A chave da API do Google está faltando. Para o jogo funcionar, você precisa obter uma chave no{' '}
-                        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline font-bold hover:text-destructive-foreground">
-                            Google AI Studio
-                        </a>
-                        {' '}e colá-la no arquivo <strong>.env</strong> na variável <code>NEXT_PUBLIC_GOOGLE_API_KEY</code>.
-                    </AlertDescription>
-                </Alert>
-            )}
             <p className="text-2xl text-white/80">
               Mostre que você sabe tudo neste jogo de perguntas e respostas!<br/>Responda a 16 perguntas para ganhar R$ 1.000.000!
             </p>
@@ -560,7 +539,7 @@ export default function GameClient() {
                     <CardHeader className="p-0 pt-6 mb-4">
                         <CardTitle className="text-2xl">Jogar como Convidado</CardTitle>
                     </CardHeader>
-                    <Button onClick={handleGuestStart} size="lg" className="w-full font-bold text-lg" disabled={isProcessing || !isAiConfigured}>
+                    <Button onClick={handleGuestStart} size="lg" className="w-full font-bold text-lg" disabled={isProcessing}>
                         {isProcessing ? <Loader2 className="animate-spin" /> : "Jogar Agora"}
                     </Button>
                     <div className="mt-4 text-center text-sm text-white/70">
@@ -608,7 +587,7 @@ export default function GameClient() {
                                     <Label htmlFor="password-signup" className="text-white/80">Senha</Label>
                                     <Input id="password-signup" type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} required className="bg-black/30"/>
                                 </div>
-                                <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg" disabled={isProcessing || !isAiConfigured || !isFirebaseConfigured}>
+                                <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg" disabled={isProcessing || !isFirebaseConfigured}>
                                     {isProcessing ? <Loader2 className="animate-spin" /> : <><Gem className="mr-2"/>Criar e Jogar</>}
                                 </Button>
                             </form>
@@ -627,7 +606,7 @@ export default function GameClient() {
                                     <Label htmlFor="password-login" className="text-white/80">Senha</Label>
                                     <Input id="password-login" type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} required className="bg-black/30"/>
                                 </div>
-                                <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg" disabled={isProcessing || !isAiConfigured || !isFirebaseConfigured}>
+                                <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg" disabled={isProcessing || !isFirebaseConfigured}>
                                     {isProcessing ? <Loader2 className="animate-spin" /> : "Entrar e Jogar"}
                                 </Button>
                             </form>
