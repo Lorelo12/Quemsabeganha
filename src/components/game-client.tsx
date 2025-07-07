@@ -933,23 +933,23 @@ export default function GameClient() {
                         </Alert>
                       ) : (
                         <>
-                          <Alert>
+                          <Alert variant="destructive">
                             <AlertTriangle className="h-4 w-4" />
-                            <AlertTitle>Problemas com o Ranking?</AlertTitle>
+                            <AlertTitle>Corrija sua Tabela de Ranking</AlertTitle>
                             <AlertDescription>
-                              Se o ranking não carregar ou não salvar, pode ser que a tabela <code>scores</code> não esteja configurada. Siga os passos:
-                              <ol className="list-decimal list-inside my-2">
-                                <li>Vá para o <strong>SQL Editor</strong> no seu projeto Supabase.</li>
-                                <li>Clique em <strong>New query</strong>, cole os códigos abaixo (um de cada vez) e clique em <strong>RUN</strong>.</li>
-                              </ol>
+                              O erro ao salvar indica que sua tabela <code>scores</code> está com a estrutura errada.
+                              <strong className="block my-2">
+                                Para corrigir, vá ao seu Supabase SQL Editor, delete a tabela <code>scores</code> antiga e execute os scripts abaixo para recriá-la.
+                              </strong>
+                              
                               <div>
-                                <h4 className="font-bold mt-3 mb-1">1. Crie a Tabela</h4>
+                                <h4 className="font-bold mt-3 mb-1">1. Crie a Tabela (versão corrigida)</h4>
                                 <pre className="p-2 bg-black/50 rounded-md text-xs text-white/80 overflow-x-auto">
                                     <code>
 {`-- Cria a tabela para armazenar as pontuações
 CREATE TABLE scores (
   id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-  user_id UUID REFERENCES auth.users(id) NOT NULL,
+  user_id TEXT NOT NULL,
   player_name TEXT NOT NULL,
   score INT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -963,13 +963,13 @@ CREATE TABLE scores (
                                 <h4 className="font-bold mt-3 mb-1">3. Crie as Políticas de Acesso</h4>
                                 <pre className="p-2 bg-black/50 rounded-md text-xs text-white/80 overflow-x-auto">
                                   <code>
-{`-- Permite que usuários autenticados insiram sua própria pontuação
-CREATE POLICY "Allow authenticated users to insert their own score"
-ON scores FOR INSERT TO authenticated
-WITH CHECK (auth.uid() = user_id);
+{`-- Permite que qualquer pessoa insira pontuações (ideal para demo).
+CREATE POLICY "Allow public insert access"
+ON scores FOR INSERT TO public
+WITH CHECK (true);
 
--- Permite que qualquer usuário (logado ou não) leia todas as pontuações
-CREATE POLICY "Allow all users to read scores"
+-- Permite que qualquer pessoa leia as pontuações.
+CREATE POLICY "Allow public read access"
 ON scores FOR SELECT TO public
 USING (true);`}
                                   </code>
