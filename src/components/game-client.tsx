@@ -873,93 +873,31 @@ export default function GameClient() {
             </Alert>
         );
     }
-    
-    const setupInstructions = `-- PASSO 1: Remover a tabela e a função antigas para uma instalação limpa.
-DROP TABLE IF EXISTS public.scores;
-DROP FUNCTION IF EXISTS upsert_player_score;
-
--- PASSO 2: Criar a tabela 'scores' com apelidos (player_name) únicos.
-CREATE TABLE public.scores (
-  user_id TEXT PRIMARY KEY,
-  player_name TEXT NOT NULL UNIQUE,
-  score INTEGER NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- PASSO 3: Criar uma função (RPC) para inserir ou atualizar a pontuação.
-CREATE OR REPLACE FUNCTION upsert_player_score(p_user_id text, p_player_name text, p_score int)
-RETURNS void
-LANGUAGE plpgsql
-AS $$
-BEGIN
-  INSERT INTO public.scores (user_id, player_name, score)
-  VALUES (p_user_id, p_player_name, p_score)
-  ON CONFLICT (user_id) DO UPDATE
-  SET score = GREATEST(public.scores.score, p_score);
-END;
-$$;
-
--- PASSO 4: Configurar as permissões de segurança da tabela (Row Level Security).
-ALTER TABLE public.scores ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Public scores are viewable by everyone."
-ON public.scores FOR SELECT
-USING (true);
-
-CREATE POLICY "Users can insert their own score."
-ON public.scores FOR INSERT
-WITH CHECK (auth.uid()::text = user_id);
-
-CREATE POLICY "Users can update their own score."
-ON public.scores FOR UPDATE
-USING (auth.uid()::text = user_id);
-`;
 
     return (
-        <Tabs defaultValue="ranking">
-            <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="ranking">Ranking</TabsTrigger>
-                <TabsTrigger value="setup">Configuração</TabsTrigger>
-            </TabsList>
-            <TabsContent value="ranking">
-                <p className="text-sm text-white/80 pt-4">Veja os melhores jogadores!</p>
-                {isLeaderboardLoading ? (
-                    <div className="flex justify-center items-center h-40">
-                        <Loader2 className="w-10 h-10 animate-spin text-primary" />
-                    </div>
-                ) : leaderboard && leaderboard.length > 0 ? (
-                    <ol className="list-none space-y-3 mt-4">
-                        {leaderboard.map((entry, index) => (
-                            <li key={index} className="flex items-center justify-between p-2 bg-black/30 rounded-md">
-                                <span className="font-semibold">{index + 1}. {entry.player_name}</span>
-                                <span className="font-bold text-secondary">R$ {entry.score.toLocaleString('pt-BR')}</span>
-                            </li>
-                        ))}
-                    </ol>
-                ) : (
-                    <div className="text-center text-white/70 py-10">
-                        <p>O ranking está vazio ou não pôde ser carregado.</p>
-                        <p className="text-xs mt-2">Se você é o desenvolvedor, verifique a aba de 'Configuração'.</p>
-                    </div>
-                )}
-            </TabsContent>
-            <TabsContent value="setup">
-                <div className="space-y-4 pt-4 text-left">
-                    <Alert>
-                        <AlertTriangle className="h-4 w-4"/>
-                        <AlertTitle>Atenção: Ação Necessária</AlertTitle>
-                        <AlertDescription>
-                            Para que os apelidos únicos e a atualização de pontuação funcionem, copie e execute TODO o script abaixo no seu <strong>Supabase SQL Editor</strong>. Isso irá recriar sua tabela de scores com a estrutura correta.
-                        </AlertDescription>
-                    </Alert>
-                    <ScrollArea className="h-72 w-full rounded-md border p-4 bg-black/50 font-mono text-xs">
-                        <pre><code>{setupInstructions}</code></pre>
-                    </ScrollArea>
-                </div>
-            </TabsContent>
-        </Tabs>
+      <>
+        <p className="text-sm text-white/80">Veja os melhores jogadores!</p>
+        {isLeaderboardLoading ? (
+            <div className="flex justify-center items-center h-40">
+                <Loader2 className="w-10 h-10 animate-spin text-primary" />
+            </div>
+        ) : leaderboard && leaderboard.length > 0 ? (
+            <ol className="list-none space-y-3 mt-4">
+                {leaderboard.map((entry, index) => (
+                    <li key={index} className="flex items-center justify-between p-2 bg-black/30 rounded-md">
+                        <span className="font-semibold">{index + 1}. {entry.player_name}</span>
+                        <span className="font-bold text-secondary">R$ {entry.score.toLocaleString('pt-BR')}</span>
+                    </li>
+                ))}
+            </ol>
+        ) : (
+            <div className="text-center text-white/70 py-10">
+                <p>O ranking está vazio ou não pôde ser carregado.</p>
+            </div>
+        )}
+      </>
     );
-};
+  };
 
   return (
     <TooltipProvider>
