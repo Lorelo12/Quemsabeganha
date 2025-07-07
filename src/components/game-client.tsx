@@ -126,7 +126,6 @@ export default function GameClient() {
   const [disabledOptions, setDisabledOptions] = useState<string[]>([]);
   const [dialogContent, setDialogContent] = useState<'audience' | 'experts' | null>(null);
   const [infoDialog, setInfoDialog] = useState<InfoDialog | null>(null);
-  const [infoDialogTab, setInfoDialogTab] = useState<'ranking' | 'setup'>('ranking');
   const [audienceData, setAudienceData] = useState<AudiencePollOutput | null>(null);
   const [expertsData, setExpertsData] = useState<ExpertsOpinionOutput | null>(null);
   const [prizeWon, setPrizeWon] = useState(0);
@@ -582,7 +581,7 @@ export default function GameClient() {
                           <AlertTriangle className="h-4 w-4" />
                           <AlertTitle>Login/Cadastro Desabilitado</AlertTitle>
                           <AlertDescription>
-                              As chaves do Firebase não foram configuradas no arquivo <strong>.env</strong>. Por favor, jogue como convidado.
+                              As chaves do Firebase não foram configuradas. Por favor, adicione as variáveis `NEXT_PUBLIC_FIREBASE_*` ao seu arquivo <strong>.env</strong> e reinicie o servidor. Você pode continuar como convidado.
                           </AlertDescription>
                       </Alert>
                     )}
@@ -796,10 +795,9 @@ export default function GameClient() {
                   </div>
                 )}
                  {infoDialog === 'ranking' && (
-                   <Tabs value={infoDialogTab} onValueChange={(value) => setInfoDialogTab(value as any)} className="w-full pt-2">
-                    <TabsList className="grid w-full grid-cols-2">
+                   <Tabs defaultValue="ranking" className="w-full pt-2">
+                    <TabsList className="grid w-full grid-cols-1">
                       <TabsTrigger value="ranking">Ranking</TabsTrigger>
-                      <TabsTrigger value="setup">Configuração</TabsTrigger>
                     </TabsList>
                     <TabsContent value="ranking">
                       <div className="space-y-4 pt-4 text-left">
@@ -823,19 +821,13 @@ export default function GameClient() {
                                 <Alert variant="destructive" className="mt-4 text-left">
                                   <AlertTitle>Ranking Desabilitado</AlertTitle>
                                   <AlertDescription>
-                                    As chaves do Supabase não foram configuradas no arquivo <strong>.env</strong>.
+                                    O ranking está desabilitado. Por favor, adicione `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` ao seu arquivo <strong>.env</strong> e reinicie o servidor.
                                   </AlertDescription>
                                 </Alert>
                             )}
                           </div>
                         )}
                       </div>
-                    </TabsContent>
-                    <TabsContent value="setup">
-                       <div className="space-y-4 pt-4">
-                          <p>Para o ranking funcionar, você precisa configurar uma tabela no Supabase. Copie e cole o código SQL abaixo no <strong>SQL Editor</strong> do seu projeto Supabase.</p>
-                          <pre className="p-4 rounded-md bg-muted text-left text-xs whitespace-pre-wrap break-all"><code>{setupSql}</code></pre>
-                       </div>
                     </TabsContent>
                   </Tabs>
                 )}
