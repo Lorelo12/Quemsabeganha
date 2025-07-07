@@ -318,19 +318,29 @@ export default function GameClient() {
   }
 
   const saveScore = useCallback(async (score: number) => {
-      if (!supabase || !auth?.currentUser || !auth.currentUser.displayName || score <= 0) return;
-      try {
-          const { error } = await supabase
-              .from('scores')
-              .insert({ 
-                  player_name: auth.currentUser.displayName, 
-                  score: score, 
-                  user_id: auth.currentUser.uid 
-              });
-          if (error) throw error;
-      } catch (error) {
-          toast({ title: "Erro ao salvar pontuação no ranking.", variant: "destructive" });
-      }
+    if (!supabase || !auth?.currentUser || !auth.currentUser.displayName || score <= 0) return;
+    try {
+        const { error } = await supabase
+            .from('scores')
+            .insert({ 
+                player_name: auth.currentUser.displayName, 
+                score: score, 
+                user_id: auth.currentUser.uid 
+            });
+        if (error) throw error;
+    } catch (error: any) {
+        console.error("Supabase save score error:", error);
+        let title = "Erro ao Salvar Pontuação";
+        let description = "Não foi possível registrar sua pontuação no ranking. Por favor, tente novamente mais tarde.";
+
+        if (error.message.includes('relation "public.scores" does not exist')) {
+            description = "A tabela 'scores' não foi encontrada no banco de dados. Siga as instruções no popup do Ranking para criá-la.";
+        } else if (error.message.includes('violates row-level security policy')) {
+            description = "As permissões do banco de dados (RLS) impediram o registro. Verifique as políticas de segurança conforme as instruções no popup do Ranking.";
+        }
+        
+        toast({ title, description, variant: "destructive" });
+    }
   }, [toast, auth]);
 
   useEffect(() => {
@@ -516,9 +526,18 @@ export default function GameClient() {
 
         if (error) throw error;
         setLeaderboard(data);
-      } catch (error) {
+      } catch (error: any) {
+        console.error("Supabase fetch leaderboard error:", error);
         setLeaderboard([]);
-        toast({ title: "Erro ao carregar o ranking.", variant: "destructive" });
+        let title = "Erro ao Carregar o Ranking";
+        let description = "Não foi possível carregar os dados. Por favor, tente novamente mais tarde.";
+
+        if (error.message.includes('relation "public.scores" does not exist')) {
+            description = "A tabela 'scores' não foi encontrada. Siga as instruções de configuração do ranking para criá-la.";
+        } else if (error.message.includes('violates row-level security policy')) {
+            description = "As permissões do banco de dados (RLS) impediram a leitura. Verifique as políticas de segurança do ranking.";
+        }
+        toast({ title, description, variant: "destructive" });
       } finally {
         setIsLeaderboardLoading(false);
       }
@@ -883,7 +902,7 @@ export default function GameClient() {
       </AlertDialog>
 
       <Dialog open={infoDialog !== null} onOpenChange={(isOpen) => !isOpen && setInfoDialog(null)}>
-        <DialogContent className="bg-dark-bg border-primary shadow-lg shadow-primary/30 text-left">
+        <DialogContent className="bg-dark-bg border-primary shadow-lg shadow-primary/30 text-left max-w-2xl">
           <DialogHeader>
             <DialogTitle className="text-2xl text-shadow-neon-pink flex items-center gap-2">
               {infoDialog === 'ranking' && <><Trophy /> Ranking dos Milionários</>}
@@ -895,7 +914,7 @@ export default function GameClient() {
               <div>
                 {infoDialog === 'ranking' && (
                   <>
-                    <div className="space-y-4 pt-4 text-left">
+                    <div className="space-y-4 pt-4 text-left max-h-[60vh] overflow-y-auto pr-2">
                       {!supabase ? (
                         <Alert variant="destructive">
                             <AlertTriangle className="h-4 w-4" />
@@ -912,7 +931,52 @@ export default function GameClient() {
                         </Alert>
                       ) : (
                         <>
-                          <p className="text-sm text-white/80">Veja os melhores jogadores!</p>
+                          <Alert>
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertTitle>Problemas com o Ranking?</AlertTitle>
+                            <AlertDescription>
+                              Se o ranking não carregar ou não salvar, pode ser que a tabela <code>scores</code> não esteja configurada. Siga os passos:
+                              <ol className="list-decimal list-inside my-2">
+                                <li>Vá para o <strong>SQL Editor</strong> no seu projeto Supabase.</li>
+                                <li>Clique em <strong>New query</strong>, cole os códigos abaixo (um de cada vez) e clique em <strong>RUN</strong>.</li>
+                              </ol>
+                              <div>
+                                <h4 className="font-bold mt-3 mb-1">1. Crie a Tabela</h4>
+                                <pre className="p-2 bg-black/50 rounded-md text-xs text-white/80 overflow-x-auto">
+                                    <code>
+{`-- Cria a tabela para armazenar as pontuações
+CREATE TABLE scores (
+  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  user_id UUID REFERENCES auth.users(id) NOT NULL,
+  player_name TEXT NOT NULL,
+  score INT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);`}
+                                    </code>
+                                </pre>
+                                <h4 className="font-bold mt-3 mb-1">2. Habilite a Segurança (RLS)</h4>
+                                <pre className="p-2 bg-black/50 rounded-md text-xs text-white/80 overflow-x-auto">
+                                  <code>{`-- Habilita a segurança em nível de linha (RLS) na tabela\nALTER TABLE scores ENABLE ROW LEVEL SECURITY;`}</code>
+                                </pre>
+                                <h4 className="font-bold mt-3 mb-1">3. Crie as Políticas de Acesso</h4>
+                                <pre className="p-2 bg-black/50 rounded-md text-xs text-white/80 overflow-x-auto">
+                                  <code>
+{`-- Permite que usuários autenticados insiram sua própria pontuação
+CREATE POLICY "Allow authenticated users to insert their own score"
+ON scores FOR INSERT TO authenticated
+WITH CHECK (auth.uid() = user_id);
+
+-- Permite que qualquer usuário (logado ou não) leia todas as pontuações
+CREATE POLICY "Allow all users to read scores"
+ON scores FOR SELECT TO public
+USING (true);`}
+                                  </code>
+                                </pre>
+                              </div>
+                            </AlertDescription>
+                          </Alert>
+                          
+                          <p className="text-sm text-white/80 pt-4">Veja os melhores jogadores!</p>
                           {isLeaderboardLoading ? (
                             <div className="flex justify-center items-center h-40">
                               <Loader2 className="w-10 h-10 animate-spin text-primary" />
@@ -927,7 +991,7 @@ export default function GameClient() {
                               ))}
                             </ol>
                           ) : (
-                            <p className="text-center text-white/70 py-10">O ranking está vazio ou não pôde ser carregado.</p>
+                            <p className="text-center text-white/70 py-10">O ranking está vazio. Seja o primeiro a pontuar!</p>
                           )}
                         </>
                       )}
