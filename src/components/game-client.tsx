@@ -179,6 +179,9 @@ export default function GameClient() {
             case 'auth/operation-not-allowed':
                 friendlyMessage = "Cadastro por Email/Senha não está ativado no seu projeto Firebase.";
                 break;
+            case 'auth/unauthorized-domain':
+                friendlyMessage = "O domínio do app não está autorizado. Adicione-o na lista de 'Domínios Autorizados' nas configurações de autenticação do seu projeto Firebase.";
+                break;
             case 'auth/invalid-email':
                 friendlyMessage = "O e-mail fornecido não é válido.";
                 break;
@@ -221,6 +224,9 @@ export default function GameClient() {
                 break;
             case 'auth/operation-not-allowed':
                 friendlyMessage = "Login por Email/Senha não está ativado. Habilite-o no seu Console do Firebase.";
+                break;
+            case 'auth/unauthorized-domain':
+                friendlyMessage = "O domínio do app não está autorizado. Adicione-o na lista de 'Domínios Autorizados' nas configurações de autenticação do seu projeto Firebase.";
                 break;
             case 'auth/configuration-not-found':
                 friendlyMessage = "Falha na configuração do Firebase. Verifique se as chaves em seu arquivo .env estão corretas.";
