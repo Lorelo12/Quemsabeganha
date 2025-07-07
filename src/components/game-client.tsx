@@ -162,7 +162,7 @@ export default function GameClient() {
 
   const handleStartGame = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isProcessing || !isFirebaseConfigured || !auth) return;
+    if (isProcessing || !auth) return;
     
     setIsProcessing(true);
 
@@ -261,14 +261,12 @@ export default function GameClient() {
   };
 
   const handleGoogleSignIn = async () => {
-    if (isProcessing || !isFirebaseConfigured || !auth) return;
+    if (isProcessing || !auth) return;
 
     setIsProcessing(true);
     const provider = new GoogleAuthProvider();
     try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      toast({ title: "Login com Google realizado!", description: `Bem-vindo(a), ${user.displayName}!` });
+      await signInWithPopup(auth, provider);
     } catch (error: any) {
       console.error("Google Sign-In Error:", error);
       const errorCode = error.code;
@@ -688,7 +686,7 @@ export default function GameClient() {
                       <Button onClick={handleGuestStart} size="lg" className="w-full font-bold text-lg" disabled={isProcessing}>
                           {isProcessing ? <Loader2 className="animate-spin" /> : "Jogar como Convidado"}
                       </Button>
-                      <Button variant="outline" className="w-full font-bold" onClick={handleGoogleSignIn} disabled={isProcessing || !isFirebaseConfigured}>
+                      <Button variant="outline" className="w-full font-bold" onClick={handleGoogleSignIn} disabled={isProcessing || !auth}>
                           <GoogleIcon /> Entrar com Google
                       </Button>
                     </div>
@@ -705,7 +703,7 @@ export default function GameClient() {
                 </>
                 ) : (
                 <>
-                    {!isFirebaseConfigured && (
+                    {!auth && (
                       <Alert variant="destructive" className="mb-4 text-left">
                           <AlertTriangle className="h-4 w-4" />
                           <AlertTitle>Login/Cadastro Desabilitado</AlertTitle>
@@ -715,7 +713,7 @@ export default function GameClient() {
                       </Alert>
                     )}
                     <div className="space-y-4">
-                        <Button variant="outline" className="w-full font-bold" onClick={handleGoogleSignIn} disabled={isProcessing || !isFirebaseConfigured}>
+                        <Button variant="outline" className="w-full font-bold" onClick={handleGoogleSignIn} disabled={isProcessing || !auth}>
                             <GoogleIcon /> Entrar com Google
                         </Button>
                         <div className="relative">
@@ -752,7 +750,7 @@ export default function GameClient() {
                                     <Label htmlFor="password-signup" className="text-white/80">Senha</Label>
                                     <Input id="password-signup" type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} required className="bg-black/30"/>
                                 </div>
-                                <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg" disabled={isProcessing || !isFirebaseConfigured}>
+                                <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg" disabled={isProcessing || !auth}>
                                     {isProcessing ? <Loader2 className="animate-spin" /> : <><Gem className="mr-2"/>Criar Conta e Jogar</>}
                                 </Button>
                             </form>
@@ -771,7 +769,7 @@ export default function GameClient() {
                                     <Label htmlFor="password-login" className="text-white/80">Senha</Label>
                                     <Input id="password-login" type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} required className="bg-black/30"/>
                                 </div>
-                                <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg" disabled={isProcessing || !isFirebaseConfigured}>
+                                <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg" disabled={isProcessing || !auth}>
                                     {isProcessing ? <Loader2 className="animate-spin" /> : "Entrar e Jogar"}
                                 </Button>
                             </form>
@@ -935,15 +933,20 @@ export default function GameClient() {
                         <>
                           <Alert variant="destructive">
                             <AlertTriangle className="h-4 w-4" />
-                            <AlertTitle>Corrija sua Tabela de Ranking</AlertTitle>
-                            <AlertDescription>
-                              O erro ao salvar indica que sua tabela <code>scores</code> está com a estrutura errada.
+                            <AlertTitle>Instruções para Configurar o Ranking</AlertTitle>
+                             <AlertDescription>
+                              O erro ao criar a tabela ("relation 'scores' already exists") indica que a tabela antiga ainda precisa ser removida.
                               <strong className="block my-2">
-                                Para corrigir, vá ao seu Supabase SQL Editor, delete a tabela <code>scores</code> antiga e execute os scripts abaixo para recriá-la.
+                                Para corrigir, vá ao seu Supabase SQL Editor e execute os seguintes scripts na ordem apresentada.
                               </strong>
                               
                               <div>
-                                <h4 className="font-bold mt-3 mb-1">1. Crie a Tabela (versão corrigida)</h4>
+                                <h4 className="font-bold mt-3 mb-1">1. Delete a Tabela Antiga (se existir)</h4>
+                                <pre className="p-2 bg-black/50 rounded-md text-xs text-white/80 overflow-x-auto">
+                                  <code>{`-- Remove a tabela antiga para evitar conflitos.\nDROP TABLE IF EXISTS scores;`}</code>
+                                </pre>
+
+                                <h4 className="font-bold mt-3 mb-1">2. Crie a Nova Tabela</h4>
                                 <pre className="p-2 bg-black/50 rounded-md text-xs text-white/80 overflow-x-auto">
                                     <code>
 {`-- Cria a tabela para armazenar as pontuações
@@ -956,11 +959,13 @@ CREATE TABLE scores (
 );`}
                                     </code>
                                 </pre>
-                                <h4 className="font-bold mt-3 mb-1">2. Habilite a Segurança (RLS)</h4>
+
+                                <h4 className="font-bold mt-3 mb-1">3. Habilite a Segurança (RLS)</h4>
                                 <pre className="p-2 bg-black/50 rounded-md text-xs text-white/80 overflow-x-auto">
                                   <code>{`-- Habilita a segurança em nível de linha (RLS) na tabela\nALTER TABLE scores ENABLE ROW LEVEL SECURITY;`}</code>
                                 </pre>
-                                <h4 className="font-bold mt-3 mb-1">3. Crie as Políticas de Acesso</h4>
+
+                                <h4 className="font-bold mt-3 mb-1">4. Crie as Políticas de Acesso</h4>
                                 <pre className="p-2 bg-black/50 rounded-md text-xs text-white/80 overflow-x-auto">
                                   <code>
 {`-- Permite que qualquer pessoa insira pontuações (ideal para demo).
