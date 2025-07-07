@@ -10,11 +10,21 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-export const isFirebaseConfigured = !!firebaseConfig.apiKey;
+let auth: Auth | null = null;
+let isFirebaseConfigured = false;
 
-let app: FirebaseApp;
-if (isFirebaseConfigured) {
-    app = getApps().length > 0 ? getApps()[0] : initializeApp(firebaseConfig);
+const isConfigValid = firebaseConfig.apiKey && !firebaseConfig.apiKey.includes('<');
+
+if (isConfigValid) {
+  try {
+    const app = getApps().length > 0 ? getApps()[0] : initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    isFirebaseConfigured = true;
+  } catch (e) {
+    console.warn('Could not initialize Firebase, continuing in offline mode.', e);
+    isFirebaseConfigured = false;
+    auth = null;
+  }
 }
 
-export const auth: Auth | null = isFirebaseConfigured ? getAuth(app!) : null;
+export { auth, isFirebaseConfigured };
