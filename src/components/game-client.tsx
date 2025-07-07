@@ -13,6 +13,8 @@ import {
   updateProfile,
   GoogleAuthProvider,
   signInWithPopup,
+  onAuthStateChanged,
+  type User,
 } from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
@@ -69,6 +71,7 @@ export default function GameClient() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authTab, setAuthTab] = useState<'login' | 'signup'>('signup');
+  const [user, setUser] = useState<User | null>(null);
 
   const [quizQuestions, setQuizQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -103,6 +106,17 @@ export default function GameClient() {
   useEffect(() => {
     const keyIsPresent = !!process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
     setIsAiConfigured(keyIsPresent);
+  }, []);
+
+  useEffect(() => {
+    if (!auth) return;
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        setPlayerName(currentUser.displayName || 'Jogador(a)');
+      }
+    });
+    return () => unsubscribe();
   }, []);
 
   const resetLifelines = () => {
@@ -146,12 +160,7 @@ export default function GameClient() {
 
   const handleStartGame = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isProcessing || !isFirebaseConfigured) return;
-
-    if (!auth) {
-      toast({ title: "Erro de Configuração", description: "A autenticação do Firebase não foi inicializada. Verifique seu arquivo .env.", variant: "destructive" });
-      return;
-    }
+    if (isProcessing || !auth || !isFirebaseConfigured) return;
     
     setIsProcessing(true);
 
@@ -166,8 +175,7 @@ export default function GameClient() {
         if (userCredential.user) {
           await updateProfile(userCredential.user, { displayName: playerName });
           setPlayerName(playerName);
-          toast({ title: "Conta criada com sucesso!", description: "Começando o jogo..." });
-          startGame();
+          toast({ title: "Conta criada com sucesso!", description: "Bem-vindo(a)!" });
         }
       } catch (error: any) {
         console.error("Firebase signup error:", error);
@@ -192,7 +200,6 @@ export default function GameClient() {
                 break;
             case 'auth/configuration-not-found':
                 friendlyMessage = "Falha na configuração do Firebase. A chave de API (apiKey) no arquivo .env parece estar incorreta.";
-                startGame(); // Fallback to guest mode
                 break;
             default:
                 friendlyMessage = "Ocorreu um erro inesperado ao criar a conta.";
@@ -209,10 +216,8 @@ export default function GameClient() {
         return;
       }
       try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        setPlayerName(userCredential.user.displayName || 'Jogador(a)');
+        await signInWithEmailAndPassword(auth, email, password);
         toast({ title: "Login realizado com sucesso!", description: "Bem-vindo(a) de volta!" });
-        startGame();
       } catch (error: any) {
         console.error("Firebase login error:", error);
         const errorCode = error.code;
@@ -235,7 +240,6 @@ export default function GameClient() {
                 break;
             case 'auth/configuration-not-found':
                 friendlyMessage = "Falha na configuração do Firebase. Verifique se as chaves em seu arquivo .env estão corretas.";
-                startGame(); // Fallback to guest mode
                 break;
             default:
                 friendlyMessage = "Ocorreu um erro inesperado ao fazer login.";
@@ -249,21 +253,14 @@ export default function GameClient() {
   };
 
   const handleGoogleSignIn = async () => {
-    if (isProcessing || !isFirebaseConfigured) return;
-
-    if (!auth) {
-      toast({ title: "Erro de Configuração", description: "A autenticação do Firebase não foi inicializada. Verifique seu arquivo .env.", variant: "destructive" });
-      return;
-    }
+    if (isProcessing || !auth || !isFirebaseConfigured) return;
 
     setIsProcessing(true);
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
-      setPlayerName(user.displayName || 'Jogador(a)');
       toast({ title: "Login com Google realizado!", description: `Bem-vindo(a), ${user.displayName}!` });
-      startGame();
     } catch (error: any) {
       console.error("Google Sign-In Error:", error);
       const errorCode = error.code;
@@ -284,7 +281,6 @@ export default function GameClient() {
           break;
         case 'auth/configuration-not-found':
           friendlyMessage = "Falha na configuração do Firebase. Verifique se as chaves em seu arquivo .env estão corretas.";
-          startGame(); // Fallback to guest mode
           break;
         default:
           break;
@@ -296,11 +292,8 @@ export default function GameClient() {
   };
 
   const handleLogout = async () => {
-    if (isProcessing) return;
-    if (!auth) {
-      toast({ title: "Erro ao sair", description: "A autenticação do Firebase não está configurada.", variant: "destructive" });
-      return;
-    }
+    if (isProcessing || !auth) return;
+    
     setIsProcessing(true);
     try {
         await signOut(auth);
@@ -623,6 +616,32 @@ export default function GameClient() {
   const renderContent = () => {
     switch(gameState) {
       case 'auth':
+        if (user) {
+          return (
+            <div className="flex flex-col items-center justify-center text-center w-full max-w-lg p-4 gap-6 animate-fade-in">
+              <Logo />
+              <div className="space-y-2">
+                  <h2 className="text-3xl font-bold text-white">Bem-vindo(a) de volta,</h2>
+                  <p className="text-4xl font-black text-shadow-neon-yellow">{playerName}!</p>
+              </div>
+              <Button onClick={startGame} size="lg" className="w-full font-bold text-lg mt-4 py-8" disabled={isProcessing}>
+                {isProcessing ? <Loader2 className="animate-spin" /> : "▶️ Iniciar Novo Jogo"}
+              </Button>
+               <div className="flex flex-wrap justify-center gap-4 mt-4">
+                  <Button
+                      variant="ghost"
+                      className="text-secondary/80 hover:text-secondary"
+                      onClick={() => { setInfoDialog('ranking'); fetchLeaderboard(); }}
+                  >
+                      <BarChart2 className="mr-2"/> Ranking
+                  </Button>
+                  <Button variant="ghost" className="text-secondary/80 hover:text-secondary" onClick={() => setInfoDialog('ajuda')}>
+                      <Lightbulb className="mr-2"/> Ajuda
+                  </Button>
+               </div>
+            </div>
+          );
+        }
         return (
            <div className="flex flex-col items-center justify-center text-center w-full max-w-4xl p-4 gap-8 animate-fade-in">
             <Logo />
@@ -706,7 +725,7 @@ export default function GameClient() {
                                     <Input id="password-signup" type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} required className="bg-black/30"/>
                                 </div>
                                 <Button type="submit" size="lg" className="w-full !mt-6 font-bold text-lg" disabled={isProcessing || !isFirebaseConfigured}>
-                                    {isProcessing ? <Loader2 className="animate-spin" /> : <><Gem className="mr-2"/>Criar e Jogar</>}
+                                    {isProcessing ? <Loader2 className="animate-spin" /> : <><Gem className="mr-2"/>Criar Conta e Jogar</>}
                                 </Button>
                             </form>
                         </TabsContent>
@@ -797,7 +816,7 @@ export default function GameClient() {
   return (
     <TooltipProvider>
       <div className="w-full max-w-4xl mx-auto p-4 md:p-6 rounded-3xl bg-black/30 relative">
-        {auth?.currentUser && (
+        {user && (
             <Button onClick={handleLogout} variant="ghost" className="absolute top-6 right-6 text-secondary z-20 hover:bg-primary/20 hover:text-secondary" disabled={isProcessing}>
                 {isProcessing ? <Loader2 className="animate-spin" /> : "Sair"}
             </Button>
