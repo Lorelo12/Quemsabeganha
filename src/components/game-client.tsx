@@ -27,6 +27,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 
 import { useToast } from '@/hooks/use-toast';
@@ -37,7 +38,6 @@ import { Loader2, Crown, Layers, Users, GraduationCap, SkipForward, CircleDollar
 import { useState, useEffect, useCallback } from 'react';
 import { Logo } from './logo';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
-import { PrizeTable } from './prize-table';
 
 type GameState = 'auth' | 'playing' | 'game_over';
 type AuthView = 'guest' | 'login';
@@ -172,6 +172,21 @@ export default function GameClient() {
         setIsProcessing(false);
         return;
       }
+      
+      if (supabase) {
+        const { data: existingPlayer } = await supabase
+          .from('scores')
+          .select('player_name')
+          .eq('player_name', playerName.trim())
+          .maybeSingle();
+        
+        if (existingPlayer) {
+          toast({ title: "Apelido já em uso", description: "Este apelido já foi escolhido por outro jogador. Por favor, tente outro.", variant: "destructive" });
+          setIsProcessing(false);
+          return;
+        }
+      }
+
       try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         if (userCredential.user) {
@@ -316,25 +331,26 @@ export default function GameClient() {
   }
 
   const saveScore = useCallback(async (score: number) => {
-    if (!supabase || !auth?.currentUser || !auth.currentUser.displayName || score <= 0) return;
+    if (!supabase || !auth?.currentUser?.uid || !auth.currentUser.displayName || score <= 0) return;
+    
     try {
-        const { error } = await supabase
-            .from('scores')
-            .insert({ 
-                player_name: auth.currentUser.displayName, 
-                score: score, 
-                user_id: auth.currentUser.uid 
-            });
-        if (error) throw error;
+      const { error } = await supabase.rpc('upsert_player_score', {
+        p_user_id: auth.currentUser.uid,
+        p_player_name: auth.currentUser.displayName,
+        p_score: score
+      });
+
+      if (error) throw error;
     } catch (error: any) {
         console.error("Supabase save score error message:", error.message || error);
         let title = "Erro ao Salvar Pontuação";
         let description = "Não foi possível registrar sua pontuação no ranking.";
 
-        if (error.message?.includes('relation "public.scores" does not exist')) {
-            description = "A tabela 'scores' não foi encontrada no banco de dados. Siga as instruções no popup do Ranking para criá-la.";
+        if (error.message?.includes('duplicate key value violates unique constraint "scores_player_name_key"')) {
+            title = "Apelido já em uso";
+            description = "Este apelido foi registrado por outro jogador enquanto você jogava. Tente um novo jogo com um apelido diferente.";
         } else if (error.message?.includes('violates row-level security policy')) {
-            description = "As permissões do banco de dados (RLS) impediram o registro. Verifique as políticas de segurança conforme as instruções no popup do Ranking.";
+            description = "As permissões do banco de dados (RLS) impediram o registro. Verifique as políticas de segurança.";
         } else {
              description = `Ocorreu um erro inesperado. ${error.message ? `Detalhes: ${error.message}` : 'Verifique a configuração do Supabase e as políticas RLS.'}`;
         }
@@ -839,6 +855,112 @@ export default function GameClient() {
     }
   }
 
+  const renderRankingContent = () => {
+    if (!supabase) {
+        return (
+            <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Ranking Desabilitado</AlertTitle>
+                <AlertDescription>
+                    Para habilitar o ranking, você precisa configurar o Supabase.
+                    <ol className="list-decimal list-inside mt-2 space-y-1">
+                        <li>Crie um projeto no <a href="https://supabase.com/" target="_blank" rel="noopener noreferrer" className="underline font-bold">Supabase</a>.</li>
+                        <li>Vá para <strong>Project Settings</strong> &gt; <strong>API</strong>.</li>
+                        <li>Copie a <strong>URL</strong> e a <strong>chave pública (anon key)</strong>.</li>
+                        <li>Cole-as nas variáveis <code>NEXT_PUBLIC_SUPABASE_URL</code> e <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> no seu arquivo <code>.env</code>.</li>
+                    </ol>
+                </AlertDescription>
+            </Alert>
+        );
+    }
+    
+    const setupInstructions = `-- PASSO 1: Remover a tabela e a função antigas para uma instalação limpa.
+DROP TABLE IF EXISTS public.scores;
+DROP FUNCTION IF EXISTS upsert_player_score;
+
+-- PASSO 2: Criar a tabela 'scores' com apelidos (player_name) únicos.
+CREATE TABLE public.scores (
+  user_id TEXT PRIMARY KEY,
+  player_name TEXT NOT NULL UNIQUE,
+  score INTEGER NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- PASSO 3: Criar uma função (RPC) para inserir ou atualizar a pontuação.
+CREATE OR REPLACE FUNCTION upsert_player_score(p_user_id text, p_player_name text, p_score int)
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  INSERT INTO public.scores (user_id, player_name, score)
+  VALUES (p_user_id, p_player_name, p_score)
+  ON CONFLICT (user_id) DO UPDATE
+  SET score = GREATEST(public.scores.score, p_score);
+END;
+$$;
+
+-- PASSO 4: Configurar as permissões de segurança da tabela (Row Level Security).
+ALTER TABLE public.scores ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public scores are viewable by everyone."
+ON public.scores FOR SELECT
+USING (true);
+
+CREATE POLICY "Users can insert their own score."
+ON public.scores FOR INSERT
+WITH CHECK (auth.uid()::text = user_id);
+
+CREATE POLICY "Users can update their own score."
+ON public.scores FOR UPDATE
+USING (auth.uid()::text = user_id);
+`;
+
+    return (
+        <Tabs defaultValue="ranking">
+            <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="ranking">Ranking</TabsTrigger>
+                <TabsTrigger value="setup">Configuração</TabsTrigger>
+            </TabsList>
+            <TabsContent value="ranking">
+                <p className="text-sm text-white/80 pt-4">Veja os melhores jogadores!</p>
+                {isLeaderboardLoading ? (
+                    <div className="flex justify-center items-center h-40">
+                        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                    </div>
+                ) : leaderboard && leaderboard.length > 0 ? (
+                    <ol className="list-none space-y-3 mt-4">
+                        {leaderboard.map((entry, index) => (
+                            <li key={index} className="flex items-center justify-between p-2 bg-black/30 rounded-md">
+                                <span className="font-semibold">{index + 1}. {entry.player_name}</span>
+                                <span className="font-bold text-secondary">R$ {entry.score.toLocaleString('pt-BR')}</span>
+                            </li>
+                        ))}
+                    </ol>
+                ) : (
+                    <div className="text-center text-white/70 py-10">
+                        <p>O ranking está vazio ou não pôde ser carregado.</p>
+                        <p className="text-xs mt-2">Se você é o desenvolvedor, verifique a aba de 'Configuração'.</p>
+                    </div>
+                )}
+            </TabsContent>
+            <TabsContent value="setup">
+                <div className="space-y-4 pt-4 text-left">
+                    <Alert>
+                        <AlertTriangle className="h-4 w-4"/>
+                        <AlertTitle>Atenção: Ação Necessária</AlertTitle>
+                        <AlertDescription>
+                            Para que os apelidos únicos e a atualização de pontuação funcionem, copie e execute TODO o script abaixo no seu <strong>Supabase SQL Editor</strong>. Isso irá recriar sua tabela de scores com a estrutura correta.
+                        </AlertDescription>
+                    </Alert>
+                    <ScrollArea className="h-72 w-full rounded-md border p-4 bg-black/50 font-mono text-xs">
+                        <pre><code>{setupInstructions}</code></pre>
+                    </ScrollArea>
+                </div>
+            </TabsContent>
+        </Tabs>
+    );
+};
+
   return (
     <TooltipProvider>
       <div className="w-full max-w-4xl mx-auto p-4 md:p-6 rounded-3xl bg-black/30 relative">
@@ -910,46 +1032,13 @@ export default function GameClient() {
               {infoDialog === 'creditos' && <><Info /> Créditos</>}
               {infoDialog === 'feedback' && <><MessageSquarePlus /> Feedback & Sugestões</>}
             </DialogTitle>
+          </DialogHeader>
             <DialogDescription asChild>
               <div>
                 {infoDialog === 'ranking' && (
                   <>
                     <div className="space-y-4 pt-4 text-left max-h-[60vh] overflow-y-auto pr-2">
-                      {!supabase ? (
-                        <Alert variant="destructive">
-                            <AlertTriangle className="h-4 w-4" />
-                            <AlertTitle>Ranking Desabilitado</AlertTitle>
-                            <AlertDescription>
-                                Para habilitar o ranking, você precisa configurar o Supabase.
-                                <ol className="list-decimal list-inside mt-2 space-y-1">
-                                    <li>Crie um projeto no <a href="https://supabase.com/" target="_blank" rel="noopener noreferrer" className="underline font-bold">Supabase</a>.</li>
-                                    <li>Vá para <strong>Project Settings</strong> &gt; <strong>API</strong>.</li>
-                                    <li>Copie a <strong>URL</strong> e a <strong>chave pública (anon key)</strong>.</li>
-                                    <li>Cole-as nas variáveis <code>NEXT_PUBLIC_SUPABASE_URL</code> e <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> no seu arquivo <code>.env</code>.</li>
-                                </ol>
-                            </AlertDescription>
-                        </Alert>
-                      ) : (
-                        <>
-                          <p className="text-sm text-white/80 pt-4">Veja os melhores jogadores!</p>
-                          {isLeaderboardLoading ? (
-                            <div className="flex justify-center items-center h-40">
-                              <Loader2 className="w-10 h-10 animate-spin text-primary" />
-                            </div>
-                          ) : leaderboard && leaderboard.length > 0 ? (
-                            <ol className="list-none space-y-3">
-                              {leaderboard.map((entry, index) => (
-                                  <li key={index} className="flex items-center justify-between p-2 bg-black/30 rounded-md">
-                                    <span className="font-semibold">{index + 1}. {entry.player_name}</span>
-                                    <span className="font-bold text-secondary">R$ {entry.score.toLocaleString('pt-BR')}</span>
-                                  </li>
-                              ))}
-                            </ol>
-                          ) : (
-                            <p className="text-center text-white/70 py-10">O ranking está vazio. Seja o primeiro a pontuar!</p>
-                          )}
-                        </>
-                      )}
+                        {renderRankingContent()}
                     </div>
                     <DialogFooter className="!mt-4 sm:!justify-end">
                         <DialogClose asChild><Button>Fechar</Button></DialogClose>
@@ -1037,7 +1126,6 @@ export default function GameClient() {
                 )}
               </div>
             </DialogDescription>
-          </DialogHeader>
         </DialogContent>
       </Dialog>
     </TooltipProvider>
