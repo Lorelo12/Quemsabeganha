@@ -150,7 +150,7 @@ export default function GameClient() {
             description: "Não foi possível criar as perguntas. Verifique sua chave de API do Google e tente recomeçar.",
             variant: "destructive",
         });
-        setGameState('game_over');
+        setGameState('auth');
     } finally {
         setIsProcessing(false);
     }
@@ -912,13 +912,13 @@ export default function GameClient() {
             </Button>
         )}
         <div className="p-1 bg-gradient-to-br from-secondary via-primary to-accent rounded-2xl">
-            <div className="bg-dark-bg p-6 rounded-xl min-h-[600px] flex items-center justify-center">
+            <div className="bg-background p-6 rounded-xl min-h-[600px] flex items-center justify-center">
                 {renderContent()}
             </div>
         </div>
       </div>
       <AlertDialog open={dialogContent !== null} onOpenChange={() => setDialogContent(null)}>
-        <AlertDialogContent className="bg-dark-bg border-primary shadow-lg shadow-primary/30">
+        <AlertDialogContent className="bg-background border-primary shadow-lg shadow-primary/30">
           {dialogContent === 'audience' && audienceData && (
             <>
               <AlertDialogHeader>
@@ -966,7 +966,7 @@ export default function GameClient() {
       </AlertDialog>
 
       <Dialog open={infoDialog !== null} onOpenChange={(isOpen) => !isOpen && setInfoDialog(null)}>
-        <DialogContent className="bg-dark-bg border-primary shadow-lg shadow-primary/30 text-left max-w-2xl">
+        <DialogContent className="bg-background border-primary shadow-lg shadow-primary/30 text-left max-w-2xl">
           <DialogHeader>
             <DialogTitle className="text-2xl text-shadow-neon-pink flex items-center gap-2">
               {infoDialog === 'ranking' && <><Trophy /> Ranking dos Milionários</>}
