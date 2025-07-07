@@ -114,6 +114,8 @@ export default function GameClient() {
       setUser(currentUser);
       if (currentUser) {
         setPlayerName(currentUser.displayName || 'Jogador(a)');
+      } else {
+        setPlayerName('');
       }
     });
     return () => unsubscribe();
@@ -174,7 +176,7 @@ export default function GameClient() {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         if (userCredential.user) {
           await updateProfile(userCredential.user, { displayName: playerName });
-          setPlayerName(playerName);
+          setUser(userCredential.user);
           toast({ title: "Conta criada com sucesso!", description: "Bem-vindo(a)!" });
         }
       } catch (error: any) {
@@ -398,10 +400,6 @@ export default function GameClient() {
   const restartGame = () => {
     setGameState('auth');
     setAuthView('guest');
-    setPlayerName('');
-    setEmail('');
-    setPassword('');
-    setAuthTab('signup');
     setQuizQuestions([]);
     setCurrentQuestionIndex(0);
     setSelectedAnswer(null);
@@ -496,7 +494,7 @@ export default function GameClient() {
 
   const fetchLeaderboard = async () => {
       if (!supabase) {
-        toast({ title: "Funcionalidade desabilitada", description: "O ranking não está configurado. Adicione as chaves do Supabase no .env", variant: "destructive" });
+        setLeaderboard(null);
         return;
       };
       setIsLeaderboardLoading(true);
@@ -889,22 +887,40 @@ export default function GameClient() {
                 {infoDialog === 'ranking' && (
                   <>
                     <div className="space-y-4 pt-4 text-left">
-                      <p className="text-sm text-white/80">Veja os melhores jogadores!</p>
-                       {isLeaderboardLoading ? (
-                        <div className="flex justify-center items-center h-40">
-                          <Loader2 className="w-10 h-10 animate-spin text-primary" />
-                        </div>
-                      ) : leaderboard && leaderboard.length > 0 ? (
-                        <ol className="list-none space-y-3">
-                          {leaderboard.map((entry, index) => (
-                              <li key={index} className="flex items-center justify-between p-2 bg-black/30 rounded-md">
-                                <span className="font-semibold">{index + 1}. {entry.player_name}</span>
-                                <span className="font-bold text-secondary">R$ {entry.score.toLocaleString('pt-BR')}</span>
-                              </li>
-                          ))}
-                        </ol>
+                      {!supabase ? (
+                        <Alert variant="destructive">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertTitle>Ranking Desabilitado</AlertTitle>
+                            <AlertDescription>
+                                Para habilitar o ranking, você precisa configurar o Supabase.
+                                <ol className="list-decimal list-inside mt-2 space-y-1">
+                                    <li>Crie um projeto no <a href="https://supabase.com/" target="_blank" rel="noopener noreferrer" className="underline font-bold">Supabase</a>.</li>
+                                    <li>Vá para <strong>Project Settings</strong> &gt; <strong>API</strong>.</li>
+                                    <li>Copie a <strong>URL</strong> e a <strong>chave pública (anon key)</strong>.</li>
+                                    <li>Cole-as nas variáveis <code>NEXT_PUBLIC_SUPABASE_URL</code> e <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> no seu arquivo <code>.env</code>.</li>
+                                </ol>
+                            </AlertDescription>
+                        </Alert>
                       ) : (
-                        <p className="text-center text-white/70 py-10">O ranking está vazio ou não pôde ser carregado.</p>
+                        <>
+                          <p className="text-sm text-white/80">Veja os melhores jogadores!</p>
+                          {isLeaderboardLoading ? (
+                            <div className="flex justify-center items-center h-40">
+                              <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                            </div>
+                          ) : leaderboard && leaderboard.length > 0 ? (
+                            <ol className="list-none space-y-3">
+                              {leaderboard.map((entry, index) => (
+                                  <li key={index} className="flex items-center justify-between p-2 bg-black/30 rounded-md">
+                                    <span className="font-semibold">{index + 1}. {entry.player_name}</span>
+                                    <span className="font-bold text-secondary">R$ {entry.score.toLocaleString('pt-BR')}</span>
+                                  </li>
+                              ))}
+                            </ol>
+                          ) : (
+                            <p className="text-center text-white/70 py-10">O ranking está vazio ou não pôde ser carregado.</p>
+                          )}
+                        </>
                       )}
                     </div>
                     <DialogFooter className="!mt-4 sm:!justify-end">
