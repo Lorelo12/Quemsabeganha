@@ -1,13 +1,23 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
-import { Poppins } from 'next/font/google'
+import { Orbitron, Barlow } from 'next/font/google'
 
-const poppins = Poppins({ subsets: ['latin'], weight: ['400', '500', '700', '900'] })
+const orbitron = Orbitron({
+  subsets: ['latin'],
+  weight: ['700', '900'],
+  variable: '--font-orbitron',
+});
+
+const barlow = Barlow({
+  subsets: ['latin'],
+  weight: ['400', '500', '700'],
+  variable: '--font-barlow',
+});
 
 export const metadata: Metadata = {
-  title: 'Quiz Milionário',
-  description: 'Um jogo de perguntas e respostas inspirado no Show do Milhão.',
+  title: 'Quem Sabe, Ganha!',
+  description: 'Um jogo de perguntas e respostas valendo um prêmio milionário!',
 };
 
 export default function RootLayout({
@@ -17,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={`${poppins.className} antialiased`}>
+      <body className={`${orbitron.variable} ${barlow.variable} font-sans antialiased`}>
         <div className="flex flex-col min-h-screen">
           <main className="flex-grow flex items-center justify-center w-full p-4">
             {children}
