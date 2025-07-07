@@ -101,7 +101,6 @@ export default function GameClient() {
   const currentQuestion = quizQuestions[currentQuestionIndex] ?? null;
   
   useEffect(() => {
-    // This check is for the Google AI key, which is needed to generate questions.
     const keyIsPresent = !!process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
     setIsAiConfigured(keyIsPresent);
   }, []);
@@ -166,6 +165,7 @@ export default function GameClient() {
           startGame();
         }
       } catch (error: any) {
+        console.error("Firebase signup error:", error);
         const errorCode = error.code;
         let friendlyMessage;
         
@@ -181,6 +181,10 @@ export default function GameClient() {
                 break;
             case 'auth/invalid-email':
                 friendlyMessage = "O e-mail fornecido não é válido.";
+                break;
+            case 'auth/configuration-not-found':
+                friendlyMessage = "Falha na configuração do Firebase. A chave de API (apiKey) no arquivo .env parece estar incorreta.";
+                startGame(); // Fallback to guest mode
                 break;
             default:
                 friendlyMessage = "Ocorreu um erro inesperado ao criar a conta.";
@@ -202,6 +206,7 @@ export default function GameClient() {
         toast({ title: "Login realizado com sucesso!", description: "Bem-vindo(a) de volta!" });
         startGame();
       } catch (error: any) {
+        console.error("Firebase login error:", error);
         const errorCode = error.code;
         let friendlyMessage;
 
@@ -213,6 +218,13 @@ export default function GameClient() {
                 break;
             case 'auth/invalid-email':
                 friendlyMessage = "O e-mail fornecido não é válido.";
+                break;
+            case 'auth/operation-not-allowed':
+                friendlyMessage = "Login por Email/Senha não está ativado. Habilite-o no seu Console do Firebase.";
+                break;
+            case 'auth/configuration-not-found':
+                friendlyMessage = "Falha na configuração do Firebase. Verifique se as chaves em seu arquivo .env estão corretas.";
+                startGame(); // Fallback to guest mode
                 break;
             default:
                 friendlyMessage = "Ocorreu um erro inesperado ao fazer login.";
@@ -237,14 +249,28 @@ export default function GameClient() {
       toast({ title: "Login com Google realizado!", description: `Bem-vindo(a), ${user.displayName}!` });
       startGame();
     } catch (error: any) {
+      console.error("Google Sign-In Error:", error);
       const errorCode = error.code;
       let friendlyMessage = "Ocorreu um erro ao fazer login com o Google.";
-      if (errorCode === 'auth/popup-closed-by-user') {
-        friendlyMessage = "A janela de login foi fechada. Tente novamente.";
-      } else if (errorCode === 'auth/account-exists-with-different-credential') {
-        friendlyMessage = "Já existe uma conta com este e-mail. Tente fazer login com outro método.";
+
+      switch (errorCode) {
+        case 'auth/popup-closed-by-user':
+          friendlyMessage = "A janela de login foi fechada. Tente novamente.";
+          break;
+        case 'auth/account-exists-with-different-credential':
+          friendlyMessage = "Já existe uma conta com este e-mail. Tente fazer login com outro método.";
+          break;
+        case 'auth/operation-not-allowed':
+          friendlyMessage = "Login com Google não está ativado. Habilite-o no seu Console do Firebase.";
+          break;
+        case 'auth/configuration-not-found':
+          friendlyMessage = "Falha na configuração do Firebase. Verifique se as chaves em seu arquivo .env estão corretas.";
+          startGame(); // Fallback to guest mode
+          break;
+        default:
+          break;
       }
-      toast({ title: "Erro no Login", description: friendlyMessage, variant: "destructive" });
+      toast({ title: "Erro no Login com Google", description: friendlyMessage, variant: "destructive" });
     } finally {
       setIsProcessing(false);
     }
