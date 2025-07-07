@@ -329,14 +329,16 @@ export default function GameClient() {
             });
         if (error) throw error;
     } catch (error: any) {
-        console.error("Supabase save score error:", error);
+        console.error("Supabase save score error message:", error.message || error);
         let title = "Erro ao Salvar Pontuação";
-        let description = "Não foi possível registrar sua pontuação no ranking. Por favor, tente novamente mais tarde.";
+        let description = "Não foi possível registrar sua pontuação no ranking.";
 
-        if (error.message.includes('relation "public.scores" does not exist')) {
+        if (error.message?.includes('relation "public.scores" does not exist')) {
             description = "A tabela 'scores' não foi encontrada no banco de dados. Siga as instruções no popup do Ranking para criá-la.";
-        } else if (error.message.includes('violates row-level security policy')) {
+        } else if (error.message?.includes('violates row-level security policy')) {
             description = "As permissões do banco de dados (RLS) impediram o registro. Verifique as políticas de segurança conforme as instruções no popup do Ranking.";
+        } else {
+             description = `Ocorreu um erro inesperado. ${error.message ? `Detalhes: ${error.message}` : 'Verifique a configuração do Supabase e as políticas RLS.'}`;
         }
         
         toast({ title, description, variant: "destructive" });
