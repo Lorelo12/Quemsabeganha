@@ -931,58 +931,6 @@ export default function GameClient() {
                         </Alert>
                       ) : (
                         <>
-                          <Alert variant="destructive">
-                            <AlertTriangle className="h-4 w-4" />
-                            <AlertTitle>Instruções para Configurar o Ranking</AlertTitle>
-                             <AlertDescription>
-                              O erro ao criar a tabela ("relation 'scores' already exists") indica que a tabela antiga ainda precisa ser removida.
-                              <strong className="block my-2">
-                                Para corrigir, vá ao seu Supabase SQL Editor e execute os seguintes scripts na ordem apresentada.
-                              </strong>
-                              
-                              <div>
-                                <h4 className="font-bold mt-3 mb-1">1. Delete a Tabela Antiga (se existir)</h4>
-                                <pre className="p-2 bg-black/50 rounded-md text-xs text-white/80 overflow-x-auto">
-                                  <code>{`-- Remove a tabela antiga para evitar conflitos.\nDROP TABLE IF EXISTS scores;`}</code>
-                                </pre>
-
-                                <h4 className="font-bold mt-3 mb-1">2. Crie a Nova Tabela</h4>
-                                <pre className="p-2 bg-black/50 rounded-md text-xs text-white/80 overflow-x-auto">
-                                    <code>
-{`-- Cria a tabela para armazenar as pontuações
-CREATE TABLE scores (
-  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-  user_id TEXT NOT NULL,
-  player_name TEXT NOT NULL,
-  score INT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);`}
-                                    </code>
-                                </pre>
-
-                                <h4 className="font-bold mt-3 mb-1">3. Habilite a Segurança (RLS)</h4>
-                                <pre className="p-2 bg-black/50 rounded-md text-xs text-white/80 overflow-x-auto">
-                                  <code>{`-- Habilita a segurança em nível de linha (RLS) na tabela\nALTER TABLE scores ENABLE ROW LEVEL SECURITY;`}</code>
-                                </pre>
-
-                                <h4 className="font-bold mt-3 mb-1">4. Crie as Políticas de Acesso</h4>
-                                <pre className="p-2 bg-black/50 rounded-md text-xs text-white/80 overflow-x-auto">
-                                  <code>
-{`-- Permite que qualquer pessoa insira pontuações (ideal para demo).
-CREATE POLICY "Allow public insert access"
-ON scores FOR INSERT TO public
-WITH CHECK (true);
-
--- Permite que qualquer pessoa leia as pontuações.
-CREATE POLICY "Allow public read access"
-ON scores FOR SELECT TO public
-USING (true);`}
-                                  </code>
-                                </pre>
-                              </div>
-                            </AlertDescription>
-                          </Alert>
-                          
                           <p className="text-sm text-white/80 pt-4">Veja os melhores jogadores!</p>
                           {isLeaderboardLoading ? (
                             <div className="flex justify-center items-center h-40">
