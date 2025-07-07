@@ -147,12 +147,14 @@ export default function GameClient() {
       if (authTab === 'signup') {
         if (!playerName.trim() || !email || !password) {
           toast({ title: "Todos os campos são obrigatórios para criar a conta.", variant: "destructive" });
+          setIsProcessing(false);
           return;
         }
 
         const isAvailable = await checkNicknameAvailability(playerName);
         if (!isAvailable) {
           toast({ title: "Apelido Indisponível", description: "Este apelido já está em uso. Por favor, escolha outro.", variant: "destructive" });
+          setIsProcessing(false);
           return;
         }
 
@@ -165,6 +167,7 @@ export default function GameClient() {
       } else { // authTab === 'login'
         if (!email || !password) {
           toast({ title: "Email e senha são obrigatórios.", variant: "destructive" });
+          setIsProcessing(false);
           return;
         }
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -182,6 +185,8 @@ export default function GameClient() {
         friendlyMessage = "A senha é muito fraca. Use pelo menos 6 caracteres.";
       } else if (errorCode === 'auth/invalid-credential') {
         friendlyMessage = "Email ou senha incorretos.";
+      } else if (errorCode === 'auth/api-key-not-valid') {
+        friendlyMessage = "A chave de API do Firebase é inválida. Verifique o valor da variável NEXT_PUBLIC_FIREBASE_API_KEY no seu arquivo .env e reinicie o servidor.";
       } else if (errorCode === 'auth/operation-not-allowed' || errorCode === 'auth/configuration-not-found') {
         friendlyMessage = "Falha na configuração do Firebase. Verifique se as chaves em seu arquivo .env estão corretas e se o provedor de Email/Senha está ativo.";
       }
