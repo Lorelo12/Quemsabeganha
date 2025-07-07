@@ -162,7 +162,7 @@ export default function GameClient() {
 
   const handleStartGame = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isProcessing || !auth || !isFirebaseConfigured) return;
+    if (isProcessing || !isFirebaseConfigured || !auth) return;
     
     setIsProcessing(true);
 
@@ -199,6 +199,9 @@ export default function GameClient() {
                 break;
             case 'auth/invalid-email':
                 friendlyMessage = "O e-mail fornecido não é válido.";
+                break;
+            case 'auth/api-key-not-valid':
+                friendlyMessage = "A chave de API do Firebase é inválida. Copie a chave correta das configurações do seu projeto Firebase e cole-a no arquivo .env.";
                 break;
             case 'auth/configuration-not-found':
                 friendlyMessage = "Falha na configuração do Firebase. A chave de API (apiKey) no arquivo .env parece estar incorreta.";
@@ -240,6 +243,9 @@ export default function GameClient() {
             case 'auth/unauthorized-domain':
                 friendlyMessage = "O domínio do app não está autorizado. Adicione-o na lista de 'Domínios Autorizados' nas configurações de autenticação do seu projeto Firebase.";
                 break;
+             case 'auth/api-key-not-valid':
+                friendlyMessage = "A chave de API do Firebase é inválida. Copie a chave correta das configurações do seu projeto Firebase e cole-a no arquivo .env.";
+                break;
             case 'auth/configuration-not-found':
                 friendlyMessage = "Falha na configuração do Firebase. Verifique se as chaves em seu arquivo .env estão corretas.";
                 break;
@@ -255,7 +261,7 @@ export default function GameClient() {
   };
 
   const handleGoogleSignIn = async () => {
-    if (isProcessing || !auth || !isFirebaseConfigured) return;
+    if (isProcessing || !isFirebaseConfigured || !auth) return;
 
     setIsProcessing(true);
     const provider = new GoogleAuthProvider();
@@ -280,6 +286,9 @@ export default function GameClient() {
           break;
         case 'auth/unauthorized-domain':
           friendlyMessage = "O domínio do app não está autorizado. Por favor, adicione-o na lista de 'Domínios Autorizados' nas configurações de autenticação do seu projeto Firebase.";
+          break;
+        case 'auth/api-key-not-valid':
+          friendlyMessage = "A chave de API do Firebase é inválida. Copie a chave correta das configurações do seu projeto Firebase e cole-a no arquivo .env.";
           break;
         case 'auth/configuration-not-found':
           friendlyMessage = "Falha na configuração do Firebase. Verifique se as chaves em seu arquivo .env estão corretas.";
@@ -322,7 +331,7 @@ export default function GameClient() {
       } catch (error) {
           toast({ title: "Erro ao salvar pontuação no ranking.", variant: "destructive" });
       }
-  }, [toast]);
+  }, [toast, auth]);
 
   useEffect(() => {
     if (gameState !== 'game_over') return;
