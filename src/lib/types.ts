@@ -25,3 +25,8 @@ export interface LifelineState {
   audience: boolean;
   experts: boolean;
 }
+
+export type LeaderboardEntry = {
+  player_name: string;
+  score: number;
+};
