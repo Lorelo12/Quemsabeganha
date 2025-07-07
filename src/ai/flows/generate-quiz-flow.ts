@@ -56,6 +56,11 @@ Gerar 16 perguntas de múltipla escolha com 4 alternativas (A, B, C, D) e apenas
     *   O objeto principal deve ter uma chave "questions", que é um array de 16 objetos de pergunta.
     *   Cada objeto de pergunta deve ter EXATAMENTE as seguintes chaves: "question" (string), "options" (um objeto com chaves "A", "B", "C", "D"), e "correctAnswerKey" (uma string que seja "A", "B", "C", ou "D").
 
+5.  **Verificação de Lógica e Precisão:** Antes de finalizar uma pergunta, verifique duplamente:
+    *   A pergunta tem uma e **apenas uma** resposta inequivocamente correta.
+    *   As outras três opções são inequivocamente incorretas.
+    *   Evite perguntas ambíguas, de opinião, ou que possam ter múltiplas respostas corretas. Um exemplo de pergunta RUIM é "Qual destes não é um dos quatro elementos clássicos?" com as opções "Água, Fogo, Terra, Ar", porque todas elas são elementos clássicos, deixando a pergunta sem resposta correta. **EVITE ESSE TIPO DE ERRO A TODO CUSTO.**
+
 Gere o conjunto completo de 16 perguntas agora, seguindo estritamente a curva de dificuldade e o formato JSON especificado.
 
 Use o seguinte número aleatório para garantir a exclusividade deste quiz: {{{seed}}}`,
