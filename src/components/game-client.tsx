@@ -147,6 +147,11 @@ export default function GameClient() {
   const handleStartGame = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isProcessing || !isFirebaseConfigured) return;
+
+    if (!auth) {
+      toast({ title: "Erro de Configuração", description: "A autenticação do Firebase não foi inicializada. Verifique seu arquivo .env.", variant: "destructive" });
+      return;
+    }
     
     setIsProcessing(true);
 
@@ -157,7 +162,7 @@ export default function GameClient() {
         return;
       }
       try {
-        const userCredential = await createUserWithEmailAndPassword(auth!, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         if (userCredential.user) {
           await updateProfile(userCredential.user, { displayName: playerName });
           setPlayerName(playerName);
@@ -204,7 +209,7 @@ export default function GameClient() {
         return;
       }
       try {
-        const userCredential = await signInWithEmailAndPassword(auth!, email, password);
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
         setPlayerName(userCredential.user.displayName || 'Jogador(a)');
         toast({ title: "Login realizado com sucesso!", description: "Bem-vindo(a) de volta!" });
         startGame();
@@ -246,10 +251,15 @@ export default function GameClient() {
   const handleGoogleSignIn = async () => {
     if (isProcessing || !isFirebaseConfigured) return;
 
+    if (!auth) {
+      toast({ title: "Erro de Configuração", description: "A autenticação do Firebase não foi inicializada. Verifique seu arquivo .env.", variant: "destructive" });
+      return;
+    }
+
     setIsProcessing(true);
     const provider = new GoogleAuthProvider();
     try {
-      const result = await signInWithPopup(auth!, provider);
+      const result = await signInWithPopup(auth, provider);
       const user = result.user;
       setPlayerName(user.displayName || 'Jogador(a)');
       toast({ title: "Login com Google realizado!", description: `Bem-vindo(a), ${user.displayName}!` });
@@ -288,7 +298,7 @@ export default function GameClient() {
   const handleLogout = async () => {
     if (isProcessing) return;
     if (!auth) {
-      toast({ title: "Erro ao sair", description: "Configuração do Firebase não encontrada.", variant: "destructive" });
+      toast({ title: "Erro ao sair", description: "A autenticação do Firebase não está configurada.", variant: "destructive" });
       return;
     }
     setIsProcessing(true);
