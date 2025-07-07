@@ -34,7 +34,7 @@ import { useToast } from '@/hooks/use-toast';
 import { PRIZE_TIERS } from '@/lib/questions';
 import type { Question, LifelineState } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Loader2, Crown, Layers, Users, GraduationCap, SkipForward, CircleDollarSign, Gem, BarChart2, Lightbulb, Info, Trophy, MessageSquarePlus, AlertTriangle } from 'lucide-react';
+import { Loader2, Crown, Layers, Users, GraduationCap, SkipForward, CircleDollarSign, Gem, BarChart2, Lightbulb, Info, Trophy, MessageSquarePlus, AlertTriangle, Copy } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { Logo } from './logo';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
@@ -114,6 +114,7 @@ export default function GameClient() {
       setUser(currentUser);
       if (currentUser) {
         setPlayerName(currentUser.displayName || 'Jogador(a)');
+        setGameState('auth');
       } else {
         setPlayerName('');
       }
@@ -192,7 +193,7 @@ export default function GameClient() {
         if (userCredential.user) {
           await updateProfile(userCredential.user, { displayName: playerName });
           setUser(userCredential.user);
-          toast({ title: "Conta criada com sucesso!", description: "Bem-vindo(a)!" });
+          setPlayerName(playerName);
         }
       } catch (error: any) {
         console.error("Firebase signup error:", error);
@@ -237,7 +238,7 @@ export default function GameClient() {
       }
       try {
         await signInWithEmailAndPassword(auth, email, password);
-        toast({ title: "Login realizado com sucesso!", description: "Bem-vindo(a) de volta!" });
+        // onAuthStateChanged will handle the rest
       } catch (error: any) {
         console.error("Firebase login error:", error);
         const errorCode = error.code;
@@ -282,6 +283,7 @@ export default function GameClient() {
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
+      // onAuthStateChanged will handle the rest
     } catch (error: any) {
       console.error("Google Sign-In Error:", error);
       const errorCode = error.code;
@@ -350,7 +352,8 @@ export default function GameClient() {
             title = "Apelido já em uso";
             description = "Este apelido foi registrado por outro jogador enquanto você jogava. Tente um novo jogo com um apelido diferente.";
         } else if (error.message?.includes('violates row-level security policy')) {
-            description = "As permissões do banco de dados (RLS) impediram o registro. Verifique as políticas de segurança.";
+            title = "Erro de Permissão no Banco de Dados";
+            description = "Sua pontuação não pôde ser salva. Vá até a aba 'Configuração' no Ranking e execute os scripts SQL para corrigir as permissões.";
         } else {
              description = `Ocorreu um erro inesperado. ${error.message ? `Detalhes: ${error.message}` : 'Verifique a configuração do Supabase e as políticas RLS.'}`;
         }
@@ -654,6 +657,77 @@ export default function GameClient() {
         </div>
       );
   }
+  
+  const SqlConfigDisplay = () => {
+    const sqlScript = `-- Passo 1: Recrie a função com as permissões corretas (SECURITY DEFINER)
+-- Isso permite que a função salve a pontuação, contornando a política de segurança de linha (RLS)
+-- de forma segura para esta operação específica.
+
+DROP FUNCTION IF EXISTS public.upsert_player_score(text, text, integer);
+
+CREATE OR REPLACE FUNCTION public.upsert_player_score(p_user_id text, p_player_name text, p_score integer)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $function$
+BEGIN
+  INSERT INTO public.scores (user_id, player_name, score)
+  VALUES (p_user_id, p_player_name, p_score)
+  ON CONFLICT (user_id) DO UPDATE
+    SET
+      score = GREATEST(scores.score, p_score),
+      player_name = p_player_name;
+END;
+$function$;
+
+-- Passo 2 (Opcional, mas recomendado): Verifique se suas políticas de segurança de linha (RLS) estão corretas.
+-- As políticas abaixo garantem que os usuários só possam inserir/atualizar seus próprios dados diretamente,
+-- enquanto a leitura do ranking é pública.
+
+-- Habilitar RLS na tabela (se ainda não estiver habilitado)
+ALTER TABLE public.scores ENABLE ROW LEVEL SECURITY;
+
+-- Remover políticas antigas para evitar conflitos
+DROP POLICY IF EXISTS "Allow public read access" ON public.scores;
+DROP POLICY IF EXISTS "Allow individual user insert" ON public.scores;
+DROP POLICY IF EXISTS "Allow individual user update" ON public.scores;
+
+-- Criar política para leitura pública
+CREATE POLICY "Allow public read access" ON public.scores
+FOR SELECT USING (true);
+
+-- Criar política para inserção (usuário só pode inserir seu próprio ID)
+CREATE POLICY "Allow individual user insert" ON public.scores
+FOR INSERT WITH CHECK (auth.uid()::text = user_id);
+
+-- Criar política para atualização (usuário só pode atualizar sua própria pontuação)
+CREATE POLICY "Allow individual user update" ON public.scores
+FOR UPDATE USING (auth.uid()::text = user_id);
+`;
+    
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(sqlScript);
+        toast({ title: "Copiado!", description: "Script SQL copiado para a área de transferência." });
+    };
+
+    return (
+        <div className="space-y-4">
+            <p className="text-sm text-white/80">
+                Ocorreu um erro? Execute os scripts SQL abaixo no seu <a href="https://supabase.com/dashboard/project/_/sql" target="_blank" rel="noopener noreferrer" className="underline font-bold">Supabase SQL Editor</a> para configurar ou consertar a tabela de ranking.
+            </p>
+            <div className="relative">
+                <Button onClick={copyToClipboard} variant="ghost" size="icon" className="absolute top-2 right-2 h-7 w-7">
+                    <Copy className="h-4 w-4" />
+                    <span className="sr-only">Copiar</span>
+                </Button>
+                <pre className="bg-black/50 p-4 rounded-md text-xs text-white/90 overflow-x-auto">
+                    <code>{sqlScript}</code>
+                </pre>
+            </div>
+        </div>
+    );
+};
+
 
   const renderContent = () => {
     switch(gameState) {
@@ -873,31 +947,40 @@ export default function GameClient() {
             </Alert>
         );
     }
-
+    
     return (
-      <>
-        <p className="text-sm text-white/80">Veja os melhores jogadores!</p>
-        {isLeaderboardLoading ? (
-            <div className="flex justify-center items-center h-40">
-                <Loader2 className="w-10 h-10 animate-spin text-primary" />
-            </div>
-        ) : leaderboard && leaderboard.length > 0 ? (
-            <ol className="list-none space-y-3 mt-4">
-                {leaderboard.map((entry, index) => (
-                    <li key={index} className="flex items-center justify-between p-2 bg-black/30 rounded-md">
-                        <span className="font-semibold">{index + 1}. {entry.player_name}</span>
-                        <span className="font-bold text-secondary">R$ {entry.score.toLocaleString('pt-BR')}</span>
-                    </li>
-                ))}
-            </ol>
-        ) : (
-            <div className="text-center text-white/70 py-10">
-                <p>O ranking está vazio ou não pôde ser carregado.</p>
-            </div>
-        )}
-      </>
+        <Tabs defaultValue="ranking" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="ranking">Ranking</TabsTrigger>
+                <TabsTrigger value="config">Configuração</TabsTrigger>
+            </TabsList>
+            <TabsContent value="ranking">
+                <p className="text-sm text-white/80 mb-2">Veja os melhores jogadores!</p>
+                {isLeaderboardLoading ? (
+                    <div className="flex justify-center items-center h-40">
+                        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                    </div>
+                ) : leaderboard && leaderboard.length > 0 ? (
+                    <ol className="list-none space-y-3 mt-4">
+                        {leaderboard.map((entry, index) => (
+                            <li key={index} className="flex items-center justify-between p-2 bg-black/30 rounded-md">
+                                <span className="font-semibold">{index + 1}. {entry.player_name}</span>
+                                <span className="font-bold text-secondary">R$ {entry.score.toLocaleString('pt-BR')}</span>
+                            </li>
+                        ))}
+                    </ol>
+                ) : (
+                    <div className="text-center text-white/70 py-10">
+                        <p>O ranking está vazio ou não pôde ser carregado.</p>
+                    </div>
+                )}
+            </TabsContent>
+            <TabsContent value="config">
+                <SqlConfigDisplay />
+            </TabsContent>
+        </Tabs>
     );
-  };
+};
 
   return (
     <TooltipProvider>
@@ -1069,3 +1152,5 @@ export default function GameClient() {
     </TooltipProvider>
   );
 }
+
+    
