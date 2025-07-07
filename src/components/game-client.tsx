@@ -140,7 +140,7 @@ export default function GameClient() {
   }, [toast]);
   
   const handleGuestStart = () => {
-    if (isProcessing || !isAiConfigured) return;
+    if (isProcessing) return;
     startGame();
   };
 
@@ -262,6 +262,9 @@ export default function GameClient() {
           break;
         case 'auth/operation-not-allowed':
           friendlyMessage = "Login com Google não está ativado. Habilite-o no seu Console do Firebase.";
+          break;
+        case 'auth/unauthorized-domain':
+          friendlyMessage = "O domínio do app não está autorizado. Por favor, adicione-o na lista de 'Domínios Autorizados' nas configurações de autenticação do seu projeto Firebase.";
           break;
         case 'auth/configuration-not-found':
           friendlyMessage = "Falha na configuração do Firebase. Verifique se as chaves em seu arquivo .env estão corretas.";
@@ -619,7 +622,7 @@ export default function GameClient() {
                         <CardTitle className="text-2xl">Comece a Jogar</CardTitle>
                     </CardHeader>
                     <div className="space-y-4">
-                      <Button onClick={handleGuestStart} size="lg" className="w-full font-bold text-lg" disabled={isProcessing || !isAiConfigured}>
+                      <Button onClick={handleGuestStart} size="lg" className="w-full font-bold text-lg" disabled={isProcessing}>
                           {isProcessing ? <Loader2 className="animate-spin" /> : "Jogar como Convidado"}
                       </Button>
                       <Button variant="outline" className="w-full font-bold" onClick={handleGoogleSignIn} disabled={isProcessing || !isFirebaseConfigured}>
