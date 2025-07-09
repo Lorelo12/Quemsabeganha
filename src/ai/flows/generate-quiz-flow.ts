@@ -12,6 +12,7 @@ import { z } from 'genkit';
 
 const GenerateQuizInputSchema = z.object({
   seed: z.number().describe('A random number to ensure quiz uniqueness.'),
+  userId: z.string().optional().describe('The unique ID of the user to generate a personalized quiz.'),
 });
 type GenerateQuizInput = z.infer<typeof GenerateQuizInputSchema>;
 
@@ -21,8 +22,8 @@ const GenerateQuizOutputSchema = z.object({
 export type GenerateQuizOutput = z.infer<typeof GenerateQuizOutputSchema>;
 
 
-export async function generateQuiz(): Promise<Question[]> {
-  const output = await generateQuizFlow({ seed: Math.random() });
+export async function generateQuiz(userId?: string): Promise<Question[]> {
+  const output = await generateQuizFlow({ seed: Math.random(), userId });
   if (!output?.questions) {
     console.error('Failed to generate quiz questions. The AI returned an empty or invalid response.');
     return [];
@@ -41,7 +42,7 @@ Gerar 16 perguntas de múltipla escolha com 4 alternativas (A, B, C, D) e apenas
 
 **Regras Essenciais:**
 
-1.  **Originalidade:** Cada quiz gerado DEVE ser completamente novo e diferente. Evite repetir perguntas ou temas de forma idêntica a uma possível geração anterior. A cada nova solicitação, crie um conjunto de perguntas totalmente original.
+1.  **Originalidade e Personalização:** Cada quiz gerado DEVE ser completamente novo e diferente. Evite repetir perguntas ou temas de forma idêntica a uma possível geração anterior. {{#if userId}}Use o ID do usuário ({{{userId}}}) como um fator adicional para garantir que este usuário receba um conjunto de perguntas que ele provavelmente ainda não viu.{{/if}} A cada nova solicitação, crie um conjunto de perguntas totalmente original.
 
 2.  **Curva de Dificuldade (Estilo Show do Milhão):** A dificuldade deve aumentar em blocos bem definidos. Siga esta estrutura rigorosamente:
     *   **Perguntas 1 a 5 (Prêmio: R$ 1.000 a R$ 5.000):** MUITO FÁCEIS. Devem ser de conhecimento geral básico, que uma criança ou a grande maioria dos adultos saberia responder. (Ex: "Qual a cor do céu em um dia sem nuvens?").
