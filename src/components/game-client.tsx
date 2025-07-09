@@ -90,18 +90,13 @@ export default function GameClient() {
   };
 
   const advanceToNextQuestion = useCallback(() => {
-    if (currentQuestionIndex === TOTAL_QUESTIONS - 1) {
-        setGameState('game_over');
-        setIsProcessing(false);
-    } else {
-        setCurrentQuestionIndex(prev => prev + 1);
-        setSelectedAnswer(null);
-        setAnswerStatus('unanswered');
-        setHostResponse('');
-        setDisabledOptions([]);
-        setIsProcessing(false);
-    }
-  }, [currentQuestionIndex]);
+    setCurrentQuestionIndex(prev => prev + 1);
+    setSelectedAnswer(null);
+    setAnswerStatus('unanswered');
+    setHostResponse('');
+    setDisabledOptions([]);
+    setIsProcessing(false);
+  }, []);
 
   const startGame = useCallback(async () => {
     if (!isAiConfigured || isProcessing) return;
@@ -132,7 +127,7 @@ export default function GameClient() {
     } finally {
         setIsProcessing(false);
     }
-  }, [toast, isAiConfigured, isProcessing, advanceToNextQuestion]);
+  }, [toast, isAiConfigured, isProcessing]);
 
   const checkNicknameAvailability = async (nickname: string) => {
     if (!isSupabaseConfigured || !supabase) return true;
@@ -320,7 +315,12 @@ export default function GameClient() {
 
     const timer = setTimeout(() => {
         if (answerStatus === 'correct') {
-          advanceToNextQuestion();
+          if (currentQuestionIndex === TOTAL_QUESTIONS - 1) {
+            setGameState('game_over');
+            setIsProcessing(false);
+          } else {
+            advanceToNextQuestion();
+          }
         } else if (answerStatus === 'incorrect') {
             setGameState('game_over');
             setIsProcessing(false);
@@ -328,7 +328,7 @@ export default function GameClient() {
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, [hostResponse, answerStatus, advanceToNextQuestion]);
+  }, [hostResponse, answerStatus, advanceToNextQuestion, currentQuestionIndex]);
 
 
   const handleAnswer = async (answerKey: string) => {
