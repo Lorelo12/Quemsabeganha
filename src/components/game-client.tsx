@@ -41,13 +41,6 @@ type InfoDialog = 'ranking' | 'ajuda' | 'creditos';
 
 const TOTAL_QUESTIONS = 16;
 
-const answerButtonColors: { [key: string]: { gradient: string, border: string } } = {
-  A: { gradient: 'from-purple-500 to-indigo-600', border: 'border-purple-400' },
-  B: { gradient: 'from-blue-500 to-cyan-500', border: 'border-blue-400' },
-  C: { gradient: 'from-yellow-500 to-orange-500', border: 'border-yellow-400' },
-  D: { gradient: 'from-pink-500 to-red-600', border: 'border-pink-400' },
-};
-
 export default function GameClient() {
   const [gameState, setGameState] = useState<GameState>('auth');
   const [authView, setAuthView] = useState<AuthView>('guest');
@@ -345,7 +338,15 @@ export default function GameClient() {
   }, []);
 
   useEffect(() => {
-    if (!hostResponse || answerStatus !== 'correct') return;
+    if (!hostResponse || answerStatus !== 'correct') {
+        if(answerStatus === 'incorrect' && !isProcessing) {
+            const timer = setTimeout(() => {
+                setGameState('game_over');
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+        return;
+    }
 
     const timer = setTimeout(() => {
       const newIndex = currentQuestionIndex + 1;
@@ -358,7 +359,7 @@ export default function GameClient() {
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, [hostResponse, answerStatus, currentQuestionIndex, advanceToNextQuestion]);
+  }, [hostResponse, answerStatus, currentQuestionIndex, advanceToNextQuestion, isProcessing]);
 
 
   const handleAnswer = async (answerKey: string) => {
@@ -370,10 +371,7 @@ export default function GameClient() {
     setAnswerStatus(isCorrect ? 'correct' : 'incorrect');
 
     if (!isCorrect) {
-      setTimeout(() => {
-        setIsProcessing(false);
-        setGameState('game_over');
-      }, 3000)
+        setTimeout(() => setIsProcessing(false), 3000);
     }
 
     const nextPrize = PRIZE_TIERS[currentQuestionIndex].amount;
@@ -550,9 +548,7 @@ export default function GameClient() {
               {Object.entries(currentQuestion.options).map(([key, value]) => {
                 const isPreSelected = preSelectedAnswer === key;
                 const isSelected = selectedAnswer === key;
-                const isCorrect = currentQuestion.correctAnswerKey === key;
                 const isDisabled = disabledOptions.includes(key);
-                const buttonStyle = answerButtonColors[key as keyof typeof answerButtonColors];
 
                 return (
                   <button
@@ -561,17 +557,20 @@ export default function GameClient() {
                     disabled={!!preSelectedAnswer || selectedAnswer !== null || isProcessing || isDisabled || answerStatus === 'incorrect'}
                     className={cn(
                       "flex items-center gap-4 p-3 md:p-4 rounded-lg border-2 text-base md:text-lg font-bold transition-all duration-300 transform hover:scale-[1.03] hover:brightness-125",
+                      !selectedAnswer && "text-primary-foreground", // Default text color
                       "disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:brightness-100",
-                      isDisabled && "opacity-30 bg-gray-700 !border-gray-600",
-                      !selectedAnswer && `bg-gradient-to-br ${buttonStyle.gradient} ${buttonStyle.border}`,
-                      isPreSelected && !selectedAnswer && "ring-4 ring-primary brightness-125 scale-[1.03]",
-                      (answerStatus === 'correct' && isSelected) && "bg-green-500 border-green-300 animate-pulse ring-4 ring-white",
-                      (answerStatus === 'incorrect' && isSelected) && "bg-red-500 border-red-300 animate-pulse ring-4 ring-white",
-                      (selectedAnswer && !isSelected && answerStatus !== 'unanswered') && "opacity-40"
+                      isDisabled && "opacity-30 bg-muted !border-muted-foreground",
+                      // Gold style for default state
+                      !selectedAnswer && "bg-gradient-to-br from-secondary to-primary border-border",
+                      isPreSelected && !selectedAnswer && "ring-4 ring-white brightness-125 scale-[1.03]",
+                      // Feedback states
+                      (answerStatus === 'correct' && isSelected) && "bg-green-500 border-green-300 animate-pulse ring-4 ring-white !text-white",
+                      (answerStatus === 'incorrect' && isSelected) && "bg-red-500 border-red-300 animate-pulse ring-4 ring-white !text-white",
+                      (selectedAnswer && !isSelected && answerStatus !== 'unanswered') && "opacity-40 text-white"
                     )}
                   >
-                    <span className={cn("flex items-center justify-center h-8 w-8 rounded-full font-black text-white text-glow-primary", `bg-gradient-to-br ${buttonStyle.gradient}`)}>{key}</span>
-                    <span className="text-white text-left flex-1">{value}</span>
+                    <span className={cn("flex items-center justify-center h-8 w-8 rounded-full font-black bg-black/20 text-glow-primary text-foreground")}>{key}</span>
+                    <span className="text-left flex-1">{value}</span>
                   </button>
                 );
               })}
@@ -702,8 +701,8 @@ export default function GameClient() {
 
             {authView === 'guest' && (
               <>
-                <Card className="w-full max-w-sm bg-card/80 border-secondary/50 p-4 text-center">
-                  <p className="text-secondary-foreground/90">
+                <Card className="w-full max-w-sm bg-card/80 border-primary/50 p-4 text-center">
+                  <p className="text-card-foreground/90">
                     <strong className="text-primary text-glow-primary">Crie uma conta</strong> ou <strong className="text-primary text-glow-primary">faça login</strong> para uma experiência de jogo única e para salvar sua pontuação no ranking!
                   </p>
                 </Card>
