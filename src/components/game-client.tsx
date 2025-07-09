@@ -24,12 +24,13 @@ import { Label } from "@/components/ui/label"
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
 
 import { useToast } from '@/hooks/use-toast';
 import { PRIZE_TIERS } from '@/lib/questions';
 import type { Question, LifelineState, LeaderboardEntry } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Loader2, Crown, Layers, Users, GraduationCap, Trophy, LogOut, ScrollText, AlertTriangle, BarChart2, Sparkles, SkipForward } from 'lucide-react';
+import { Loader2, Crown, Layers, Users, GraduationCap, Trophy, LogOut, ScrollText, AlertTriangle, BarChart2, Sparkles, SkipForward, Flag } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { Logo } from './logo';
 
@@ -58,6 +59,7 @@ export default function GameClient() {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [quizQuestions, setQuizQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [preSelectedAnswer, setPreSelectedAnswer] = useState<string | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [answerStatus, setAnswerStatus] = useState<AnswerStatus>('unanswered');
   const [hostResponse, setHostResponse] = useState('');
@@ -72,6 +74,8 @@ export default function GameClient() {
   });
   const [disabledOptions, setDisabledOptions] = useState<string[]>([]);
   const [dialogContent, setDialogContent] = useState<'audience' | 'experts' | null>(null);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [reportText, setReportText] = useState('');
   const [infoDialog, setInfoDialog] = useState<InfoDialog | null>(null);
   const [audienceData, setAudienceData] = useState<AudiencePollOutput | null>(null);
   const [expertsData, setExpertsData] = useState<ExpertsOpinionOutput | null>(null);
@@ -98,8 +102,10 @@ export default function GameClient() {
       setCurrentUser(user);
       if (user) {
         setPlayerName(user.displayName || 'Jogador(a)');
+        setGameState('auth'); // Go to welcome screen if logged in
       } else {
         setPlayerName('');
+        setGameState('auth');
       }
       setIsCheckingAuth(false);
     });
@@ -120,6 +126,7 @@ export default function GameClient() {
     resetLifelines();
     setAnswerStatus('unanswered');
     setSelectedAnswer(null);
+    setPreSelectedAnswer(null);
     setHostResponse('');
     setIsProcessing(true);
     setDisabledOptions([]);
@@ -331,6 +338,7 @@ export default function GameClient() {
   const advanceToNextQuestion = (newIndex: number) => {
     setCurrentQuestionIndex(newIndex);
     setSelectedAnswer(null);
+    setPreSelectedAnswer(null);
     setAnswerStatus('unanswered');
     setHostResponse('');
     setDisabledOptions([]);
@@ -390,6 +398,28 @@ export default function GameClient() {
         }
     }
   };
+  
+  const handleChangeAnswer = () => {
+    setPreSelectedAnswer(null);
+  };
+
+  const handleReportSubmit = () => {
+    if (!reportText.trim()) {
+      toast({ title: "Erro", description: "Por favor, descreva o problema.", variant: "destructive" });
+      return;
+    }
+    console.log({
+      message: "Reporte de Erro na Pergunta",
+      question: currentQuestion?.question,
+      options: currentQuestion?.options,
+      correctAnswer: currentQuestion?.correctAnswerKey,
+      report: reportText,
+      user: currentUser?.displayName || 'Convidado'
+    });
+    toast({ title: "Reporte Enviado!", description: "Obrigado! Analisaremos a questão." });
+    setIsReportDialogOpen(false);
+    setReportText('');
+  };
 
   const restartGame = () => {
     setGameState('auth');
@@ -404,7 +434,7 @@ export default function GameClient() {
   };
 
   const handleUseSkip = () => {
-    if (lifelines.skip > 0 && answerStatus === 'unanswered' && currentQuestionIndex < TOTAL_QUESTIONS - 1) {
+    if (lifelines.skip > 0 && !preSelectedAnswer && answerStatus === 'unanswered' && currentQuestionIndex < TOTAL_QUESTIONS - 1) {
       setLifelines(prev => ({ ...prev, skip: prev.skip - 1 }));
       const newIndex = currentQuestionIndex + 1;
       advanceToNextQuestion(newIndex);
@@ -417,13 +447,13 @@ export default function GameClient() {
   };
 
   const handleUseCards = () => {
-    if (lifelines.cards && currentQuestion && answerStatus === 'unanswered') {
+    if (lifelines.cards && currentQuestion && !preSelectedAnswer && answerStatus === 'unanswered') {
       setLifelines(prev => ({ ...prev, cards: false }));
       const incorrectOptions = Object.keys(currentQuestion.options).filter(
         key => key !== currentQuestion.correctAnswerKey
       );
       
-      const numberOfOptionsToRemove = Math.floor(Math.random() * 3) + 1;
+      const numberOfOptionsToRemove = Math.floor(Math.random() * 3) + 1; // 1, 2, or 3
 
       const shuffled = incorrectOptions.sort(() => 0.5 - Math.random());
       setDisabledOptions(shuffled.slice(0, numberOfOptionsToRemove));
@@ -431,7 +461,7 @@ export default function GameClient() {
   };
   
   const handleUseAudience = async () => {
-    if (lifelines.audience && currentQuestion && answerStatus === 'unanswered') {
+    if (lifelines.audience && currentQuestion && !preSelectedAnswer && answerStatus === 'unanswered') {
       setIsProcessing(true);
       setLifelines(prev => ({ ...prev, audience: false }));
       try {
@@ -448,7 +478,7 @@ export default function GameClient() {
   };
   
   const handleUseExperts = async () => {
-    if (lifelines.experts && currentQuestion && answerStatus === 'unanswered') {
+    if (lifelines.experts && currentQuestion && !preSelectedAnswer && answerStatus === 'unanswered') {
       setIsProcessing(true);
       setLifelines(prev => ({ ...prev, experts: false }));
       try {
@@ -465,7 +495,7 @@ export default function GameClient() {
   };
 
   const handleGiveUp = () => {
-    if (isProcessing || !!selectedAnswer) return;
+    if (isProcessing || !!selectedAnswer || !!preSelectedAnswer) return;
     setGaveUp(true);
     setGameState('game_over');
   };
@@ -501,12 +531,21 @@ export default function GameClient() {
                 </p>
             </div>
 
-            <Card className="text-center bg-card/80 border-2 border-accent/50 rounded-xl p-4 md:p-6 min-h-[120px] flex items-center justify-center">
+            <Card className="relative text-center bg-card/80 border-2 border-accent/50 rounded-xl p-4 md:p-6 min-h-[120px] flex items-center justify-center">
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="absolute top-2 right-2 text-white/50 hover:text-red-500" onClick={() => setIsReportDialogOpen(true)} disabled={isProcessing}>
+                            <Flag className="h-5 w-5" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Reportar erro na pergunta</TooltipContent>
+                </Tooltip>
                 <p className="text-xl md:text-3xl font-bold text-white font-sans">{currentQuestion.question}</p>
             </Card>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               {Object.entries(currentQuestion.options).map(([key, value]) => {
+                const isPreSelected = preSelectedAnswer === key;
                 const isSelected = selectedAnswer === key;
                 const isCorrect = currentQuestion.correctAnswerKey === key;
                 const isDisabled = disabledOptions.includes(key);
@@ -515,13 +554,14 @@ export default function GameClient() {
                 return (
                   <button
                     key={key}
-                    onClick={() => handleAnswer(key)}
-                    disabled={selectedAnswer !== null || isProcessing || isDisabled || answerStatus === 'incorrect'}
+                    onClick={() => setPreSelectedAnswer(key)}
+                    disabled={!!preSelectedAnswer || selectedAnswer !== null || isProcessing || isDisabled || answerStatus === 'incorrect'}
                     className={cn(
                       "flex items-center gap-4 p-3 md:p-4 rounded-lg border-2 text-base md:text-lg font-bold transition-all duration-300 transform hover:scale-[1.03] hover:brightness-125",
                       "disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:brightness-100",
                       isDisabled && "opacity-30 bg-gray-700 !border-gray-600",
                       !selectedAnswer && `bg-gradient-to-br ${buttonStyle.gradient} ${buttonStyle.border}`,
+                      isPreSelected && !selectedAnswer && "ring-4 ring-primary brightness-125 scale-[1.03]",
                       (answerStatus === 'correct' && isSelected) && "bg-green-500 border-green-300 animate-pulse ring-4 ring-white",
                       (answerStatus === 'incorrect' && isSelected) && "bg-red-500 border-red-300 animate-pulse ring-4 ring-white",
                       (selectedAnswer && !isSelected && answerStatus !== 'unanswered') && "opacity-40"
@@ -533,6 +573,17 @@ export default function GameClient() {
                 );
               })}
             </div>
+            
+            {preSelectedAnswer && !selectedAnswer && (
+              <div className="flex justify-center items-center gap-4 mt-4 animate-fade-in">
+                <Button onClick={handleChangeAnswer} variant="outline" size="lg" className="px-8 py-6 rounded-lg font-bold text-lg">
+                  Trocar Resposta
+                </Button>
+                <Button onClick={() => handleAnswer(preSelectedAnswer)} size="lg" className="px-8 py-6 rounded-lg font-bold text-lg bg-primary text-primary-foreground hover:bg-primary/90 box-glow-primary">
+                  Confirmar Resposta
+                </Button>
+              </div>
+            )}
             
             {hostResponse && (
               <Card className="w-full text-center mt-4 animate-fade-in p-4 bg-black/50 border-primary">
@@ -546,7 +597,7 @@ export default function GameClient() {
                     <div className="flex items-center gap-2">
                       <Tooltip>
                           <TooltipTrigger asChild>
-                              <Button onClick={handleUseSkip} disabled={lifelines.skip === 0 || !!selectedAnswer || isProcessing || currentQuestionIndex === TOTAL_QUESTIONS - 1} variant="outline" size="icon" className="border-green-400 text-green-400 hover:bg-green-400/20 hover:text-green-400 disabled:opacity-40 size-12 relative">
+                              <Button onClick={handleUseSkip} disabled={!!preSelectedAnswer || lifelines.skip === 0 || !!selectedAnswer || isProcessing || currentQuestionIndex === TOTAL_QUESTIONS - 1} variant="outline" size="icon" className="border-green-400 text-green-400 hover:bg-green-400/20 hover:text-green-400 disabled:opacity-40 size-12 relative">
                                   <SkipForward className="w-6 h-6"/>
                                   {lifelines.skip > 0 && (
                                       <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center border-2 border-card">
@@ -559,7 +610,7 @@ export default function GameClient() {
                       </Tooltip>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                           <Button onClick={handleUseExperts} disabled={!lifelines.experts || !!selectedAnswer || isProcessing} variant="outline" size="icon" className="border-secondary text-secondary hover:bg-secondary/20 hover:text-secondary disabled:opacity-40 size-12">
+                           <Button onClick={handleUseExperts} disabled={!!preSelectedAnswer || !lifelines.experts || !!selectedAnswer || isProcessing} variant="outline" size="icon" className="border-secondary text-secondary hover:bg-secondary/20 hover:text-secondary disabled:opacity-40 size-12">
                               <GraduationCap className="w-6 h-6"/>
                            </Button>
                         </TooltipTrigger>
@@ -567,7 +618,7 @@ export default function GameClient() {
                       </Tooltip>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button onClick={handleUseCards} disabled={!lifelines.cards || !!selectedAnswer || isProcessing} variant="outline" size="icon" className="border-accent text-accent hover:bg-accent/20 hover:text-accent disabled:opacity-40 size-12">
+                          <Button onClick={handleUseCards} disabled={!!preSelectedAnswer || !lifelines.cards || !!selectedAnswer || isProcessing} variant="outline" size="icon" className="border-accent text-accent hover:bg-accent/20 hover:text-accent disabled:opacity-40 size-12">
                               <Layers className="w-6 h-6"/>
                           </Button>
                         </TooltipTrigger>
@@ -575,7 +626,7 @@ export default function GameClient() {
                       </Tooltip>
                        <Tooltip>
                         <TooltipTrigger asChild>
-                           <Button onClick={handleUseAudience} disabled={!lifelines.audience || !!selectedAnswer || isProcessing} variant="outline" size="icon" className="border-orange-400 text-orange-400 hover:bg-orange-400/20 hover:text-orange-400 disabled:opacity-40 size-12">
+                           <Button onClick={handleUseAudience} disabled={!!preSelectedAnswer || !lifelines.audience || !!selectedAnswer || isProcessing} variant="outline" size="icon" className="border-orange-400 text-orange-400 hover:bg-orange-400/20 hover:text-orange-400 disabled:opacity-40 size-12">
                               <Users className="w-6 h-6"/>
                            </Button>
                         </TooltipTrigger>
@@ -588,7 +639,7 @@ export default function GameClient() {
                       <Button 
                           variant="destructive"
                           onClick={handleGiveUp} 
-                          disabled={isProcessing || !!selectedAnswer}
+                          disabled={isProcessing || !!selectedAnswer || !!preSelectedAnswer}
                           className="bg-red-700/80 hover:bg-red-700 border-red-500 font-bold text-lg py-6 px-8 rounded-full shadow-lg"
                       >
                           <Trophy className="mr-2 h-5 w-5"/>
@@ -617,7 +668,7 @@ export default function GameClient() {
            return (
             <div className="flex flex-col items-center justify-center text-center w-full max-w-lg p-4 gap-6 animate-fade-in">
               <Logo />
-              <h2 className="text-3xl font-bold text-white/90">Bem-vindo(a) de volta, <span className="text-primary text-glow-primary">{playerName}</span>!</h2>
+              <h2 className="text-3xl font-bold text-white/90">Bem-vindo(a) de volta, <span className="text-primary text-glow-primary">{currentUser.displayName}</span>!</h2>
               <div className="w-full max-w-sm flex flex-col gap-4 mt-4">
                   <Button onClick={() => startGame()} size="lg" className="w-full font-bold text-xl h-16 bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 transition-transform box-glow-primary rounded-lg" disabled={isProcessing || !isAiConfigured}>
                       {isProcessing && quizQuestions.length === 0 ? <Loader2 className="animate-spin" /> : "NOVO JOGO"}
@@ -822,6 +873,33 @@ export default function GameClient() {
           )}
         </AlertDialogContent>
       </AlertDialog>
+      
+      <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
+        <DialogContent className="bg-card border-primary text-left max-w-lg">
+            <DialogHeader>
+                <DialogTitle className="text-2xl font-display text-glow-primary flex items-center gap-2">
+                    <Flag /> Reportar Erro na Pergunta
+                </DialogTitle>
+                <DialogDescription className="pt-2">
+                  Encontrou um problema com esta pergunta? (ex: erro de digitação, resposta incorreta, ambiguidade). Descreva abaixo para nos ajudar a melhorar o jogo.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="py-4 space-y-2">
+                <p className="font-bold text-sm text-white/80">Pergunta:</p>
+                <p className="p-2 bg-muted/50 rounded-md text-sm">{currentQuestion?.question}</p>
+                <Textarea
+                    placeholder="Descreva o problema aqui..."
+                    value={reportText}
+                    onChange={(e) => setReportText(e.target.value)}
+                    rows={4}
+                />
+            </div>
+            <DialogFooter>
+                <DialogClose asChild><Button variant="ghost">Cancelar</Button></DialogClose>
+                <Button onClick={handleReportSubmit}>Enviar Reporte</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={infoDialog !== null} onOpenChange={(isOpen) => !isOpen && setInfoDialog(null)}>
         <DialogContent className="bg-card border-primary text-left max-w-2xl">
