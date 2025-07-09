@@ -72,6 +72,7 @@ export default function GameClient() {
   const [audienceData, setAudienceData] = useState<AudiencePollOutput | null>(null);
   const [expertsData, setExpertsData] = useState<ExpertsOpinionOutput | null>(null);
   const [prizeWon, setPrizeWon] = useState(0);
+  const [securedPrize, setSecuredPrize] = useState(0);
   const [gaveUp, setGaveUp] = useState(false);
   
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[] | null>(null);
@@ -111,6 +112,7 @@ export default function GameClient() {
     setDisabledOptions([]);
     setGaveUp(false);
     setPrizeWon(0);
+    setSecuredPrize(0);
     try {
         const newQuestions = await generateQuiz();
         if (newQuestions.length !== TOTAL_QUESTIONS) {
@@ -288,6 +290,20 @@ export default function GameClient() {
   };
 
   useEffect(() => {
+    if (gameState !== 'playing' || quizQuestions.length === 0) return;
+
+    const lastCheckpointIndex = PRIZE_TIERS.slice(0, currentQuestionIndex)
+      .map(p => p.isCheckpoint)
+      .lastIndexOf(true);
+    const newSecuredPrize = lastCheckpointIndex !== -1 ? PRIZE_TIERS[lastCheckpointIndex].amount : 0;
+    
+    if (newSecuredPrize !== securedPrize) {
+      setSecuredPrize(newSecuredPrize);
+    }
+  }, [currentQuestionIndex, gameState, quizQuestions.length, securedPrize]);
+
+
+  useEffect(() => {
     if (gameState !== 'game_over') return;
 
     let finalPrize = 0;
@@ -363,6 +379,7 @@ export default function GameClient() {
     setPassword('');
     setAuthTab('signup');
     setLeaderboard(null);
+    setSecuredPrize(0);
   };
 
   const handleUseSkip = () => {
@@ -443,10 +460,6 @@ export default function GameClient() {
       if (!currentQuestion) return null;
 
       const prizeForCurrentQuestion = PRIZE_TIERS[currentQuestionIndex]?.amount || 0;
-      const lastCheckpointIndex = PRIZE_TIERS.slice(0, currentQuestionIndex)
-        .map(p => p.isCheckpoint)
-        .lastIndexOf(true);
-      const securedPrize = lastCheckpointIndex !== -1 ? PRIZE_TIERS[lastCheckpointIndex].amount : 0;
 
       return (
         <div className="w-full max-w-3xl flex flex-col gap-4 animate-fade-in">

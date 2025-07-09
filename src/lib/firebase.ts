@@ -1,5 +1,11 @@
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
-import { getAuth, type Auth } from 'firebase/auth';
+import { 
+  getAuth, 
+  type Auth, 
+  GoogleAuthProvider, 
+  signInWithPopup,
+  type User
+} from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -26,5 +32,20 @@ if (isConfigValid) {
     auth = null;
   }
 }
+
+export const handleGoogleSignIn = async (): Promise<User | null> => {
+    if (!auth) {
+        throw new Error("Firebase is not configured correctly.");
+    }
+    const provider = new GoogleAuthProvider();
+    try {
+        const result = await signInWithPopup(auth, provider);
+        return result.user;
+    } catch (error) {
+        console.error("Error during Google Sign-In:", error);
+        throw error;
+    }
+};
+
 
 export { auth, isFirebaseConfigured };
