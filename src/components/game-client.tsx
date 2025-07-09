@@ -639,7 +639,7 @@ export default function GameClient() {
 
   return (
     <TooltipProvider>
-      <div className="w-full max-w-4xl mx-auto">
+      <div className="w-full max-w-4xl mx-auto flex items-center justify-center">
         {renderContent()}
       </div>
       <AlertDialog open={dialogContent !== null} onOpenChange={() => setDialogContent(null)}>
