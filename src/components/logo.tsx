@@ -2,28 +2,35 @@ export function Logo() {
   return (
     <div className="flex justify-center">
       <svg
-        viewBox="0 0 512 200"
+        viewBox="0 0 500 350"
         xmlns="http://www.w3.org/2000/svg"
-        className="w-full max-w-sm md:max-w-md drop-shadow-lg"
+        className="w-full max-w-md drop-shadow-lg"
       >
         <defs>
-          <linearGradient id="logo-gradient-front" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" style={{ stopColor: 'hsl(var(--secondary))', stopOpacity: 1 }} />
-            <stop offset="100%" style={{ stopColor: 'hsl(var(--primary))', stopOpacity: 1 }} />
+          <linearGradient id="gold-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#FFF7B0" />
+            <stop offset="50%" stopColor="#FFD700" />
+            <stop offset="51%" stopColor="#FDB813" />
+            <stop offset="100%" stopColor="#E6A100" />
           </linearGradient>
-           <linearGradient id="logo-gradient-top" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" style={{ stopColor: 'hsl(45, 100%, 85%)', stopOpacity: 1 }} />
-            <stop offset="100%" style={{ stopColor: 'hsl(var(--secondary))', stopOpacity: 1 }} />
+          <linearGradient id="gold-grad-border" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#E6A100" />
+            <stop offset="100%" stopColor="#FDB813" />
           </linearGradient>
-           <linearGradient id="logo-gradient-side" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" style={{ stopColor: 'hsl(var(--primary))', stopOpacity: 1 }} />
-            <stop offset="100%" style={{ stopColor: 'hsl(45, 100%, 40%)', stopOpacity: 1 }} />
+          <linearGradient id="gold-bar-top" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#FFF7B0" />
+            <stop offset="100%" stopColor="#FFD700" />
           </linearGradient>
+          <linearGradient id="gold-bar-front" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#FFD700" />
+            <stop offset="100%" stopColor="#E6A100" />
+          </linearGradient>
+
           <filter id="logo-glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur" />
+            <feGaussianBlur in="SourceAlpha" stdDeviation="5" result="blur" />
             <feFlood
               floodColor="hsl(var(--primary))"
-              floodOpacity="0.7"
+              floodOpacity="0.8"
               result="flood"
             />
             <feComposite in="flood" in2="blur" operator="in" result="coloredBlur" />
@@ -35,69 +42,56 @@ export function Logo() {
         </defs>
 
         <g style={{ filter: 'url(#logo-glow)' }}>
-          {/* 3D Gold Pile */}
-          <g opacity="0.95" transform="translate(10, 45)">
-            {/* Back row bar */}
-            <g transform="translate(120 70) rotate(-2)">
-              <polygon points="0,15 250,15 260,5 10,5" fill="url(#logo-gradient-top)" />
-              <polygon points="250,15 260,5 260,35 250,45" fill="url(#logo-gradient-side)" />
-              <polygon points="0,15 0,45 250,45 250,15" fill="url(#logo-gradient-front)" />
-            </g>
-            
-            {/* Bottom left bar */}
-            <g transform="translate(40 85) rotate(-10)">
-              <polygon points="0,15 180,15 190,5 10,5" fill="url(#logo-gradient-top)" />
-              <polygon points="180,15 190,5 190,35 180,45" fill="url(#logo-gradient-side)" />
-              <polygon points="0,15 0,45 180,45 180,15" fill="url(#logo-gradient-front)" />
-            </g>
-            
-            {/* Bottom right bar */}
-             <g transform="translate(260 90) rotate(8)">
-              <polygon points="0,15 200,15 210,5 10,5" fill="url(#logo-gradient-top)" />
-              <polygon points="200,15 210,5 210,35 200,45" fill="url(#logo-gradient-side)" />
-              <polygon points="0,15 0,45 200,45 200,15" fill="url(#logo-gradient-front)" />
-            </g>
-
-            {/* Middle front bar */}
-             <g transform="translate(140 65) rotate(1)">
-              <polygon points="0,20 230,20 245,5 15,5" fill="url(#logo-gradient-top)" />
-              <polygon points="230,20 245,5 245,35 230,50" fill="url(#logo-gradient-side)" />
-              <polygon points="0,20 0,50 230,50 230,20" fill="url(#logo-gradient-front)" />
-            </g>
+          {/* Background Emblem */}
+          <path
+            d="M 250,20 C 450,20 480,100 480,175 C 480,275 400,330 250,330 C 100,330 20,275 20,175 C 20,100 50,20 250,20 Z"
+            fill="black"
+            stroke="url(#gold-grad-border)"
+            strokeWidth="12"
+          />
+          <path
+            d="M 250,20 C 450,20 480,100 480,175 C 480,275 400,330 250,330 C 100,330 20,275 20,175 C 20,100 50,20 250,20 Z"
+            fill="transparent"
+            stroke="#FFF7B0"
+            strokeWidth="2"
+          />
+          
+          {/* Sparkles */}
+          <g fill="url(#gold-grad)">
+            <path transform="translate(100 70) scale(0.8)" d="m10.85,1.9a1.5,1.5 0 0 0 -1.7,0l-6.25,3.6a1.5,1.5 0 0 0 0,2.6l6.25,3.6a1.5,1.5 0 0 0 1.7,0l6.25,-3.6a1.5,1.5 0 0 0 0,-2.6l-6.25,-3.6z"/>
+            <path transform="translate(380 70) scale(0.8)" d="m10.85,1.9a1.5,1.5 0 0 0 -1.7,0l-6.25,3.6a1.5,1.5 0 0 0 0,2.6l6.25,3.6a1.5,1.5 0 0 0 1.7,0l6.25,-3.6a1.5,1.5 0 0 0 0,-2.6l-6.25,-3.6z"/>
+            <path transform="translate(80 270) scale(0.6)" d="m10.85,1.9a1.5,1.5 0 0 0 -1.7,0l-6.25,3.6a1.5,1.5 0 0 0 0,2.6l6.25,3.6a1.5,1.5 0 0 0 1.7,0l6.25,-3.6a1.5,1.5 0 0 0 0,-2.6l-6.25,-3.6z"/>
+            <path transform="translate(420 270) scale(0.6)" d="m10.85,1.9a1.5,1.5 0 0 0 -1.7,0l-6.25,3.6a1.5,1.5 0 0 0 0,2.6l6.25,3.6a1.5,1.5 0 0 0 1.7,0l6.25,-3.6a1.5,1.5 0 0 0 0,-2.6l-6.25,-3.6z"/>
           </g>
 
-          {/* Text */}
-          <g transform="translate(0, -10)">
-            <text
-              x="50%"
-              y="40%"
-              dominantBaseline="middle"
-              textAnchor="middle"
-              fill="url(#logo-gradient-front)"
-              fontFamily="var(--font-orbitron)"
-              fontSize="60"
-              fontWeight="900"
-              letterSpacing="0.05em"
-              stroke="hsl(var(--primary-foreground))"
-              strokeWidth="1"
-            >
-              QUEM SABE,
-            </text>
-            <text
-              x="50%"
-              y="78%"
-              dominantBaseline="middle"
-              textAnchor="middle"
-              fill="url(#logo-gradient-front)"
-              fontFamily="var(--font-orbitron)"
-              fontSize="88"
-              fontWeight="900"
-              letterSpacing="0.02em"
-              stroke="hsl(var(--primary-foreground))"
-              strokeWidth="1"
-            >
-              GANHA!
-            </text>
+          {/* Text Layers for 3D Effect */}
+          <g
+            fontFamily="var(--font-orbitron), sans-serif"
+            fontWeight="900"
+            textAnchor="middle"
+            strokeLinejoin="round"
+          >
+            {/* Shadow */}
+            <text x="253" y="113" fill="#000" opacity="0.5" fontSize="60">QUEM</text>
+            <text x="253" y="183" fill="#000" opacity="0.5" fontSize="60">SABE</text>
+            <text x="253" y="263" fill="#000" opacity="0.5" fontSize="80">GANHA!</text>
+            
+            {/* Main Text */}
+            <text x="250" y="110" fill="url(#gold-grad)" stroke="#613400" strokeWidth="3" fontSize="60">QUEM</text>
+            <text x="250" y="180" fill="url(#gold-grad)" stroke="#613400" strokeWidth="3" fontSize="60">SABE</text>
+            <text x="250" y="260" fill="url(#gold-grad)" stroke="#613400" strokeWidth="4" fontSize="80">GANHA!</text>
+          </g>
+          
+          {/* Gold Bar at the bottom */}
+          <g transform="translate(160 270) rotate(-8)">
+              <polygon points="0,5 180,0 185,15 5,20" fill="url(#gold-bar-top)"/>
+              <polygon points="5,20 185,15 180,35 0,40" fill="url(#gold-bar-front)"/>
+              <text 
+                  x="92.5" y="18" textAnchor="middle" dominantBaseline="middle"
+                  fontFamily="var(--font-orbitron)" fontSize="16" fontWeight="bold"
+                  fill="#8C5C0B" transform="skewY(-5)">
+                  GANHA.
+              </text>
           </g>
         </g>
       </svg>
