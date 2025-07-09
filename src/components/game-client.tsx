@@ -383,8 +383,11 @@ export default function GameClient() {
       const incorrectOptions = Object.keys(currentQuestion.options).filter(
         key => key !== currentQuestion.correctAnswerKey
       );
+      
+      const numberOfOptionsToRemove = Math.floor(Math.random() * 2) + 1;
+
       const shuffled = incorrectOptions.sort(() => 0.5 - Math.random());
-      setDisabledOptions(shuffled.slice(0, 2));
+      setDisabledOptions(shuffled.slice(0, numberOfOptionsToRemove));
     }
   };
   
@@ -520,7 +523,7 @@ export default function GameClient() {
                               <Layers className="w-6 h-6"/>
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Cartas (Remove 2)</TooltipContent>
+                        <TooltipContent>Cartas (Remove opções)</TooltipContent>
                       </Tooltip>
                        <Tooltip>
                         <TooltipTrigger asChild>
