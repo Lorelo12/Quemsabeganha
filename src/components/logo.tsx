@@ -4,7 +4,8 @@ export function Logo() {
   return (
     <div className="flex justify-center">
       <Image
-        src="/logo.png"
+        src="https://placehold.co/512x512.png"
+        data-ai-hint="logo"
         alt="Quem Sabe, Ganha! Logo"
         width={512}
         height={512}
