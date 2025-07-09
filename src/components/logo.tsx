@@ -33,6 +33,33 @@ export function Logo() {
         </defs>
 
         <g style={{ filter: 'url(#logo-glow)' }}>
+          {/* Gold Bars */}
+          <g opacity="0.8">
+            <rect
+              x="56"
+              y="85"
+              width="400"
+              height="30"
+              rx="5"
+              fill="url(#logo-gradient)"
+              stroke="hsl(var(--primary-foreground))"
+              strokeWidth="0.25"
+              transform="rotate(-10 256 100)"
+            />
+            <rect
+              x="56"
+              y="85"
+              width="400"
+              height="30"
+              rx="5"
+              fill="url(#logo-gradient)"
+              stroke="hsl(var(--primary-foreground))"
+              strokeWidth="0.25"
+              transform="rotate(10 256 100)"
+            />
+          </g>
+
+          {/* Text */}
           <text
             x="50%"
             y="40%"
