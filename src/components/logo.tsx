@@ -17,14 +17,6 @@ export function Logo() {
           </filter>
         </defs>
 
-        {/* Emblem Background */}
-        <path 
-          d="M50 20 Q250 -20 450 20 L480 300 Q250 370 20 300 Z" 
-          fill="hsl(var(--card))" 
-          stroke="url(#gold-gradient)" 
-          strokeWidth="5"
-        />
-
         {/* Text */}
         <g fontFamily="var(--font-orbitron), sans-serif" textAnchor="middle" filter="url(#glow)">
           {/* Text Shadow for 3D effect */}
