@@ -533,14 +533,16 @@ export default function GameClient() {
             </div>
 
             <Card className="relative text-center bg-card/80 border-2 border-accent/50 rounded-xl p-4 md:p-6 min-h-[120px] flex items-center justify-center">
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="absolute top-2 right-2 text-white/50 hover:text-red-500" onClick={() => setIsReportDialogOpen(true)} disabled={isProcessing}>
-                            <Flag className="h-5 w-5" />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Reportar erro na pergunta</TooltipContent>
-                </Tooltip>
+                <TooltipProvider>
+                  <Tooltip>
+                      <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="absolute top-2 right-2 text-white/50 hover:text-red-500" onClick={() => setIsReportDialogOpen(true)} disabled={isProcessing}>
+                              <Flag className="h-5 w-5" />
+                          </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Reportar erro na pergunta</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 <p className="text-xl md:text-3xl font-bold text-white font-sans">{currentQuestion.question}</p>
             </Card>
 
@@ -597,43 +599,45 @@ export default function GameClient() {
                 <div className="flex justify-between items-center gap-2">
                     {/* Lifelines on the left */}
                     <div className="flex items-center gap-2">
-                      <Tooltip>
+                      <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button onClick={handleUseSkip} disabled={!!preSelectedAnswer || lifelines.skip === 0 || !!selectedAnswer || isProcessing || currentQuestionIndex === TOTAL_QUESTIONS - 1} variant="outline" size="icon" className="border-green-400 text-green-400 hover:bg-green-400/20 hover:text-green-400 disabled:opacity-40 size-12 relative">
+                                    <SkipForward className="w-6 h-6"/>
+                                    {lifelines.skip > 0 && (
+                                        <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center border-2 border-card">
+                                            {lifelines.skip}
+                                        </span>
+                                    )}
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Pular Pergunta ({lifelines.skip} restantes)</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
                           <TooltipTrigger asChild>
-                              <Button onClick={handleUseSkip} disabled={!!preSelectedAnswer || lifelines.skip === 0 || !!selectedAnswer || isProcessing || currentQuestionIndex === TOTAL_QUESTIONS - 1} variant="outline" size="icon" className="border-green-400 text-green-400 hover:bg-green-400/20 hover:text-green-400 disabled:opacity-40 size-12 relative">
-                                  <SkipForward className="w-6 h-6"/>
-                                  {lifelines.skip > 0 && (
-                                      <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center border-2 border-card">
-                                          {lifelines.skip}
-                                      </span>
-                                  )}
-                              </Button>
+                             <Button onClick={handleUseExperts} disabled={!!preSelectedAnswer || !lifelines.experts || !!selectedAnswer || isProcessing} variant="outline" size="icon" className="border-secondary text-secondary hover:bg-secondary/20 hover:text-secondary disabled:opacity-40 size-12">
+                                <GraduationCap className="w-6 h-6"/>
+                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>Pular Pergunta ({lifelines.skip} restantes)</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                           <Button onClick={handleUseExperts} disabled={!!preSelectedAnswer || !lifelines.experts || !!selectedAnswer || isProcessing} variant="outline" size="icon" className="border-secondary text-secondary hover:bg-secondary/20 hover:text-secondary disabled:opacity-40 size-12">
-                              <GraduationCap className="w-6 h-6"/>
-                           </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Universitários</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button onClick={handleUseCards} disabled={!!preSelectedAnswer || !lifelines.cards || !!selectedAnswer || isProcessing} variant="outline" size="icon" className="border-accent text-accent hover:bg-accent/20 hover:text-accent disabled:opacity-40 size-12">
-                              <Layers className="w-6 h-6"/>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Cartas (Remove 1, 2 ou 3 opções incorretas)</TooltipContent>
-                      </Tooltip>
-                       <Tooltip>
-                        <TooltipTrigger asChild>
-                           <Button onClick={handleUseAudience} disabled={!!preSelectedAnswer || !lifelines.audience || !!selectedAnswer || isProcessing} variant="outline" size="icon" className="border-orange-400 text-orange-400 hover:bg-orange-400/20 hover:text-orange-400 disabled:opacity-40 size-12">
-                              <Users className="w-6 h-6"/>
-                           </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Plateia</TooltipContent>
-                      </Tooltip>
+                          <TooltipContent>Universitários</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button onClick={handleUseCards} disabled={!!preSelectedAnswer || !lifelines.cards || !!selectedAnswer || isProcessing} variant="outline" size="icon" className="border-accent text-accent hover:bg-accent/20 hover:text-accent disabled:opacity-40 size-12">
+                                <Layers className="w-6 h-6"/>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Cartas (Remove 1, 2 ou 3 opções incorretas)</TooltipContent>
+                        </Tooltip>
+                         <Tooltip>
+                          <TooltipTrigger asChild>
+                             <Button onClick={handleUseAudience} disabled={!!preSelectedAnswer || !lifelines.audience || !!selectedAnswer || isProcessing} variant="outline" size="icon" className="border-orange-400 text-orange-400 hover:bg-orange-400/20 hover:text-orange-400 disabled:opacity-40 size-12">
+                                <Users className="w-6 h-6"/>
+                             </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Plateia</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
 
                     {/* Give up button on the right */}

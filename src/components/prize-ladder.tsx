@@ -46,5 +46,3 @@ export function PrizeLadder({ currentQuestionIndex }: PrizeLadderProps) {
     </Card>
   );
 }
-
-    
