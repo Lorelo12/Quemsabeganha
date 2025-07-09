@@ -291,17 +291,14 @@ export default function GameClient() {
     } else if (gaveUp) {
       finalPrize = currentQuestionIndex > 0 ? PRIZE_TIERS[currentQuestionIndex - 1].amount : 0;
     } else if (answerStatus === 'incorrect') {
-      const lastCheckpointIndex = PRIZE_TIERS.slice(0, currentQuestionIndex)
-        .map(p => p.isCheckpoint)
-        .lastIndexOf(true);
-      finalPrize = lastCheckpointIndex !== -1 ? PRIZE_TIERS[lastCheckpointIndex].amount : 0;
+      finalPrize = securedPrize;
     }
     
     setPrizeWon(finalPrize);
     if (finalPrize > 0) {
       saveScore(finalPrize);
     }
-  }, [gameState, answerStatus, currentQuestionIndex, gaveUp, saveScore]);
+  }, [gameState, answerStatus, currentQuestionIndex, gaveUp, saveScore, securedPrize]);
   
   useEffect(() => {
     if (!hostResponse || (answerStatus !== 'correct' && answerStatus !== 'incorrect')) return;
@@ -312,15 +309,7 @@ export default function GameClient() {
             setGameState('game_over');
             setIsProcessing(false);
           } else {
-            const newIndex = currentQuestionIndex + 1;
-            setCurrentQuestionIndex(newIndex);
-            
-            const lastCheckpointIndex = PRIZE_TIERS.slice(0, newIndex)
-              .map(p => p.isCheckpoint)
-              .lastIndexOf(true);
-            const newSecuredPrize = lastCheckpointIndex !== -1 ? PRIZE_TIERS[lastCheckpointIndex].amount : 0;
-            setSecuredPrize(newSecuredPrize);
-            
+            setCurrentQuestionIndex(currentQuestionIndex + 1);
             setSelectedAnswer(null);
             setAnswerStatus('unanswered');
             setHostResponse('');
@@ -345,19 +334,21 @@ export default function GameClient() {
     const isCorrect = answerKey === currentQuestion.correctAnswerKey;
     setAnswerStatus(isCorrect ? 'correct' : 'incorrect');
 
+    if (isCorrect) {
+      const currentPrizeTier = PRIZE_TIERS[currentQuestionIndex];
+      if (currentPrizeTier.isCheckpoint) {
+        setSecuredPrize(currentPrizeTier.amount);
+      }
+    }
+
     const nextPrize = PRIZE_TIERS[currentQuestionIndex].amount;
-    
-    const lastCheckpointIndex = PRIZE_TIERS.slice(0, currentQuestionIndex)
-        .map(p => p.isCheckpoint)
-        .lastIndexOf(true);
-    const prizeOnFailure = lastCheckpointIndex !== -1 ? PRIZE_TIERS[lastCheckpointIndex].amount : 0;
+    const prizeOnFailure = securedPrize;
 
     try {
       const res = await gameShowHost({ playerName: playerName || "Jogador(a)", question: currentQuestion.question, answer: answerKey, isCorrect: isCorrect, currentPrize: nextPrize, prizeOnFailure: prizeOnFailure });
       setHostResponse(res.response);
     } catch (error) {
       setHostResponse(isCorrect ? 'Resposta certa!' : 'Resposta errada.');
-      // Keep processing on error, as the useEffect for answerStatus will handle the next step.
     }
   };
 
@@ -375,16 +366,7 @@ export default function GameClient() {
   const handleUseSkip = () => {
     if (lifelines.skip > 0 && answerStatus === 'unanswered' && currentQuestionIndex < TOTAL_QUESTIONS - 1) {
       setLifelines(prev => ({ ...prev, skip: prev.skip - 1 }));
-
-      const newIndex = currentQuestionIndex + 1;
-      setCurrentQuestionIndex(newIndex);
-      
-      const lastCheckpointIndex = PRIZE_TIERS.slice(0, newIndex)
-        .map(p => p.isCheckpoint)
-        .lastIndexOf(true);
-      const newSecuredPrize = lastCheckpointIndex !== -1 ? PRIZE_TIERS[lastCheckpointIndex].amount : 0;
-      setSecuredPrize(newSecuredPrize);
-      
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
       setSelectedAnswer(null);
       setAnswerStatus('unanswered');
       setHostResponse('');
