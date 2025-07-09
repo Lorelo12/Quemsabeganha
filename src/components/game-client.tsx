@@ -182,6 +182,7 @@ export default function GameClient() {
 
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCredential.user, { displayName: playerName });
+        setCurrentUser(userCredential.user);
         setPlayerName(playerName);
         toast({ title: "Conta criada com sucesso!", description: "Começando o jogo..." });
         await startGame();
@@ -193,6 +194,7 @@ export default function GameClient() {
           return;
         }
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        setCurrentUser(userCredential.user);
         setPlayerName(userCredential.user.displayName || 'Jogador(a)');
         toast({ title: "Login realizado com sucesso!", description: "Bem-vindo(a) de volta!" });
         await startGame();
@@ -224,6 +226,7 @@ export default function GameClient() {
     try {
       const user = await handleGoogleSignIn();
       if (user) {
+        setCurrentUser(user);
         setPlayerName(user.displayName || 'Jogador(a)');
         toast({ title: "Login realizado com sucesso!", description: `Bem-vindo(a) de volta, ${user.displayName}!` });
         await startGame();
@@ -243,6 +246,7 @@ export default function GameClient() {
     setIsProcessing(true);
     try {
         await signOut(auth);
+        setCurrentUser(null);
         toast({ title: "Você saiu.", description: "Até a próxima!" });
         restartGame();
     } catch (error) {
@@ -253,12 +257,12 @@ export default function GameClient() {
   };
 
   const saveScore = useCallback(async (score: number) => {
-    if (!isSupabaseConfigured || !supabase || !auth?.currentUser || !auth.currentUser.displayName || score <= 0) return;
+    if (!isSupabaseConfigured || !supabase || !currentUser || !currentUser.displayName || score <= 0) return;
     
     try {
       const { error } = await supabase.rpc('upsert_player_score', {
-        p_user_id: auth.currentUser.uid,
-        p_player_name: auth.currentUser.displayName,
+        p_user_id: currentUser.uid,
+        p_player_name: currentUser.displayName,
         p_score: score,
       });
 
@@ -274,7 +278,7 @@ export default function GameClient() {
       }
       toast({ title: "Erro ao Salvar Pontuação", description, variant: "destructive" });
     }
-  }, [toast]);
+  }, [toast, currentUser]);
   
 
   const fetchLeaderboard = async () => {
@@ -370,7 +374,7 @@ export default function GameClient() {
 
     try {
       const res = await gameShowHost({ 
-        playerName: playerName || "Jogador(a)", 
+        playerName: currentUser?.displayName || playerName || "Jogador(a)", 
         question: currentQuestion.question, 
         answer: answerKey, 
         isCorrect: isCorrect, 
@@ -380,16 +384,19 @@ export default function GameClient() {
       setHostResponse(res.response);
     } catch (error) {
       setHostResponse(isCorrect ? 'Resposta certa!' : 'Resposta errada.');
-      if (!isCorrect) {
-        setIsProcessing(false);
-      }
+    } finally {
+        if (!isCorrect) {
+            setIsProcessing(false);
+        }
     }
   };
 
   const restartGame = () => {
     setGameState('auth');
-    setAuthView('guest');
-    setPlayerName('');
+    if (!currentUser) {
+        setAuthView('guest');
+        setPlayerName('');
+    }
     setEmail('');
     setPassword('');
     setAuthTab('signup');
