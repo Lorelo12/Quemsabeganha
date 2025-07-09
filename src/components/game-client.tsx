@@ -11,6 +11,8 @@ import {
   signInWithEmailAndPassword, 
   signOut,
   updateProfile,
+  onAuthStateChanged,
+  type User,
 } from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
@@ -52,6 +54,8 @@ export default function GameClient() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authTab, setAuthTab] = useState<'login' | 'signup'>('signup');
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [quizQuestions, setQuizQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -83,6 +87,25 @@ export default function GameClient() {
   useEffect(() => {
     setIsAiConfigured(!!process.env.NEXT_PUBLIC_GOOGLE_API_KEY);
   }, []);
+
+  useEffect(() => {
+    if (!isFirebaseConfigured || !auth) {
+      setIsCheckingAuth(false);
+      return;
+    };
+
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      if (user) {
+        setPlayerName(user.displayName || 'Jogador(a)');
+      } else {
+        setPlayerName('');
+      }
+      setIsCheckingAuth(false);
+    });
+
+    return () => unsubscribe();
+  }, [isFirebaseConfigured]);
 
   const resetLifelines = () => {
     setLifelines({ skip: 3, cards: true, audience: true, experts: true });
@@ -572,8 +595,46 @@ export default function GameClient() {
   }
   
   const renderContent = () => {
+    if (isCheckingAuth) {
+        return (
+           <div className="flex flex-col items-center justify-center gap-4 text-primary h-96">
+             <Loader2 className="h-16 w-16 animate-spin" />
+             <p className="text-2xl font-bold font-display text-glow-primary">Verificando sessão...</p>
+           </div>
+        );
+    }
+
     switch(gameState) {
       case 'auth':
+        if (currentUser) {
+           return (
+            <div className="flex flex-col items-center justify-center text-center w-full max-w-lg p-4 gap-6 animate-fade-in">
+              <Logo />
+              <h2 className="text-3xl font-bold text-white/90">Bem-vindo(a) de volta, <span className="text-primary text-glow-primary">{playerName}</span>!</h2>
+              <div className="w-full max-w-sm flex flex-col gap-4 mt-4">
+                  <Button onClick={() => startGame()} size="lg" className="w-full font-bold text-xl h-16 bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 transition-transform box-glow-primary rounded-lg" disabled={isProcessing || !isAiConfigured}>
+                      {isProcessing && quizQuestions.length === 0 ? <Loader2 className="animate-spin" /> : "NOVO JOGO"}
+                  </Button>
+                  <Button onClick={handleLogout} variant="outline" size="lg" className="w-full font-bold text-lg h-14 border-white/50 text-white hover:bg-white/20 hover:text-white rounded-lg" disabled={isProcessing}>
+                     <LogOut className="mr-2"/> SAIR
+                  </Button>
+              </div>
+
+              <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-8">
+                <Button variant="ghost" onClick={() => { setInfoDialog('ranking'); fetchLeaderboard(); }} className="text-white/70 hover:text-primary">
+                    <BarChart2 className="mr-2"/>Ranking
+                </Button>
+                <Button variant="ghost" onClick={() => setInfoDialog('ajuda')} className="text-white/70 hover:text-primary">
+                    <ScrollText className="mr-2"/>Regras
+                </Button>
+                <Button variant="ghost" onClick={() => setInfoDialog('creditos')} className="text-white/70 hover:text-primary">
+                    <Sparkles className="mr-2"/>Créditos
+                </Button>
+              </div>
+            </div>
+          );
+        }
+
         return (
           <div className="flex flex-col items-center justify-center text-center w-full max-w-lg p-4 gap-6 animate-fade-in">
             <Logo />
@@ -653,11 +714,6 @@ export default function GameClient() {
               <Button variant="ghost" onClick={() => setInfoDialog('creditos')} className="text-white/70 hover:text-primary">
                   <Sparkles className="mr-2"/>Créditos
               </Button>
-              {auth?.currentUser && (
-                <Button variant="ghost" onClick={handleLogout} className="text-red-500/70 hover:text-red-500">
-                    <LogOut className="mr-2"/>Sair
-                </Button>
-              )}
             </div>
             
              {!isAiConfigured && (
