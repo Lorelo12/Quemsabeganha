@@ -301,29 +301,29 @@ export default function GameClient() {
     }
   }, [gameState, answerStatus, currentQuestionIndex, gaveUp, saveScore]);
   
-  const advanceToNextQuestion = useCallback(() => {
-    if (currentQuestionIndex === TOTAL_QUESTIONS - 1) {
-      setGameState('game_over');
-      setIsProcessing(false);
-    } else {
-      setCurrentQuestionIndex(prev => prev + 1);
-      setSelectedAnswer(null);
-      setAnswerStatus('unanswered');
-      setHostResponse('');
-      setDisabledOptions([]);
-      setIsProcessing(false);
-    }
-  }, [currentQuestionIndex]);
+  const advanceToNextQuestion = (newIndex: number) => {
+    setCurrentQuestionIndex(newIndex);
+    setSelectedAnswer(null);
+    setAnswerStatus('unanswered');
+    setHostResponse('');
+    setDisabledOptions([]);
+  };
 
   useEffect(() => {
     if (!hostResponse || answerStatus !== 'correct') return;
 
     const timer = setTimeout(() => {
-      advanceToNextQuestion();
+      const newIndex = currentQuestionIndex + 1;
+      if (newIndex >= TOTAL_QUESTIONS) {
+        setGameState('game_over');
+      } else {
+        advanceToNextQuestion(newIndex);
+      }
+      setIsProcessing(false);
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, [hostResponse, answerStatus, advanceToNextQuestion]);
+  }, [hostResponse, answerStatus, currentQuestionIndex]);
 
 
   const handleAnswer = async (answerKey: string) => {
@@ -376,7 +376,8 @@ export default function GameClient() {
   const handleUseSkip = () => {
     if (lifelines.skip > 0 && answerStatus === 'unanswered' && currentQuestionIndex < TOTAL_QUESTIONS - 1) {
       setLifelines(prev => ({ ...prev, skip: prev.skip - 1 }));
-      advanceToNextQuestion();
+      const newIndex = currentQuestionIndex + 1;
+      advanceToNextQuestion(newIndex);
       
       toast({
           title: "Pergunta pulada!",
@@ -392,7 +393,7 @@ export default function GameClient() {
         key => key !== currentQuestion.correctAnswerKey
       );
       
-      const numberOfOptionsToRemove = Math.floor(Math.random() * 2) + 1;
+      const numberOfOptionsToRemove = Math.floor(Math.random() * 3) + 1;
 
       const shuffled = incorrectOptions.sort(() => 0.5 - Math.random());
       setDisabledOptions(shuffled.slice(0, numberOfOptionsToRemove));
@@ -540,7 +541,7 @@ export default function GameClient() {
                               <Layers className="w-6 h-6"/>
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Cartas (Remove 1 ou 2 opções)</TooltipContent>
+                        <TooltipContent>Cartas (Remove 1, 2 ou 3 opções incorretas)</TooltipContent>
                       </Tooltip>
                        <Tooltip>
                         <TooltipTrigger asChild>
@@ -778,7 +779,7 @@ export default function GameClient() {
                           <ul className="space-y-1 list-disc list-inside">
                               <li><strong className="text-green-400">Pular (3 usos):</strong> Avança para a próxima pergunta sem responder a atual.</li>
                               <li><strong className="text-secondary">Universitários:</strong> Pede a opinião de três especialistas fictícios.</li>
-                              <li><strong className="text-accent">Cartas:</strong> Remove 1 ou 2 opções incorretas da tela.</li>
+                              <li><strong className="text-accent">Cartas:</strong> Remove 1, 2 ou 3 opções incorretas da tela.</li>
                               <li><strong className="text-orange-400">Plateia:</strong> Mostra a porcentagem de votos da plateia para cada opção.</li>
                           </ul>
                       </div>
