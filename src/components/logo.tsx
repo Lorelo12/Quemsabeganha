@@ -1,15 +1,15 @@
-import Image from 'next/image';
-
+// I've temporarily switched to a standard <img> tag for easier debugging.
+// We can switch back to the optimized <Image> component once this is working.
 export function Logo() {
   return (
     <div className="flex justify-center">
-      <Image
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
         src="/logo.png"
         alt="Quem Sabe, Ganha! Logo"
-        width={500}
-        height={350}
         className="w-full max-w-md"
-        priority
+        // Setting aspect ratio to prevent layout shift, similar to width/height in next/image
+        style={{ aspectRatio: '500 / 350' }}
       />
     </div>
   );
