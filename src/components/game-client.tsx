@@ -21,7 +21,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { PrizeLadder } from '@/components/prize-ladder';
 import { Card } from '@/components/ui/card';
 
 import { useToast } from '@/hooks/use-toast';
@@ -443,16 +442,38 @@ export default function GameClient() {
       
       if (!currentQuestion) return null;
 
+      const prizeForCurrentQuestion = PRIZE_TIERS[currentQuestionIndex]?.amount || 0;
+      const lastCheckpointIndex = PRIZE_TIERS.slice(0, currentQuestionIndex)
+        .map(p => p.isCheckpoint)
+        .lastIndexOf(true);
+      const securedPrize = lastCheckpointIndex !== -1 ? PRIZE_TIERS[lastCheckpointIndex].amount : 0;
+
       return (
-        <div className="grid grid-cols-1 lg:grid-cols-4 w-full gap-6 animate-fade-in">
-          {/* Main Game Column */}
-          <div className="lg:col-span-3 flex flex-col gap-4">
+        <div className="w-full max-w-3xl flex flex-col gap-4 animate-fade-in">
+            {/* Top Info Bar */}
             <div className="w-full text-center p-2 rounded-lg bg-black/30 border border-secondary/50">
                 <p className="font-display text-xl tracking-wider">
                     <span className="text-white/70">Pergunta {currentQuestionIndex + 1}/{TOTAL_QUESTIONS}</span>
                 </p>
             </div>
           
+            {/* Prize Info Display */}
+            <div className="flex justify-around items-center w-full text-center p-3 rounded-xl bg-card/80 border-2 border-primary/50">
+                <div className="flex-1">
+                    <p className="text-sm font-bold text-primary/80 uppercase tracking-wider">VALENDO</p>
+                    <p className="font-display text-2xl md:text-3xl font-bold text-primary text-glow-primary">
+                        R$ {prizeForCurrentQuestion.toLocaleString('pt-BR')}
+                    </p>
+                </div>
+                <div className="border-l border-border h-12"></div>
+                <div className="flex-1">
+                    <p className="text-sm font-bold text-white/60 uppercase tracking-wider">GARANTIDO</p>
+                    <p className="font-display text-2xl md:text-3xl font-bold text-white/80">
+                        R$ {securedPrize.toLocaleString('pt-BR')}
+                    </p>
+                </div>
+            </div>
+
             <Card className="text-center bg-card/80 border-2 border-accent/50 rounded-xl p-4 md:p-6 min-h-[120px] flex items-center justify-center">
                 <p className="text-xl md:text-3xl font-bold text-white font-sans">{currentQuestion.question}</p>
             </Card>
@@ -523,7 +544,7 @@ export default function GameClient() {
                               <Layers className="w-6 h-6"/>
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Cartas (Remove opções)</TooltipContent>
+                        <TooltipContent>Cartas (Remove 1 ou 2 opções)</TooltipContent>
                       </Tooltip>
                        <Tooltip>
                         <TooltipTrigger asChild>
@@ -549,12 +570,6 @@ export default function GameClient() {
                     </div>
                 </div>
             </Card>
-          </div>
-
-          {/* Prize Ladder Column */}
-          <div className="order-first lg:order-last lg:col-span-1 h-full">
-            <PrizeLadder currentQuestionIndex={currentQuestionIndex} />
-          </div>
         </div>
       );
   }
@@ -767,7 +782,7 @@ export default function GameClient() {
                           <ul className="space-y-1 list-disc list-inside">
                               <li><strong className="text-green-400">Pular (3 usos):</strong> Avança para a próxima pergunta sem responder a atual.</li>
                               <li><strong className="text-secondary">Universitários:</strong> Pede a opinião de três especialistas fictícios.</li>
-                              <li><strong className="text-accent">Cartas:</strong> Remove duas respostas incorretas da tela.</li>
+                              <li><strong className="text-accent">Cartas:</strong> Remove 1 ou 2 opções incorretas da tela.</li>
                               <li><strong className="text-orange-400">Plateia:</strong> Mostra a porcentagem de votos da plateia para cada opção.</li>
                           </ul>
                       </div>
