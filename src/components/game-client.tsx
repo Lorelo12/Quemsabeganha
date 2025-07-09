@@ -72,7 +72,6 @@ export default function GameClient() {
   const [audienceData, setAudienceData] = useState<AudiencePollOutput | null>(null);
   const [expertsData, setExpertsData] = useState<ExpertsOpinionOutput | null>(null);
   const [prizeWon, setPrizeWon] = useState(0);
-  const [securedPrize, setSecuredPrize] = useState(0);
   const [gaveUp, setGaveUp] = useState(false);
   
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[] | null>(null);
@@ -103,7 +102,6 @@ export default function GameClient() {
     setDisabledOptions([]);
     setGaveUp(false);
     setPrizeWon(0);
-    setSecuredPrize(0);
     try {
         const newQuestions = await generateQuiz();
         if (newQuestions.length !== TOTAL_QUESTIONS) {
@@ -291,21 +289,19 @@ export default function GameClient() {
     } else if (gaveUp) {
       finalPrize = currentQuestionIndex > 0 ? PRIZE_TIERS[currentQuestionIndex - 1].amount : 0;
     } else if (answerStatus === 'incorrect') {
-      finalPrize = securedPrize;
+       const lastCheckpointIndex = PRIZE_TIERS.slice(0, currentQuestionIndex)
+        .map(p => p.isCheckpoint)
+        .lastIndexOf(true);
+      finalPrize = lastCheckpointIndex !== -1 ? PRIZE_TIERS[lastCheckpointIndex].amount : 0;
     }
     
     setPrizeWon(finalPrize);
     if (finalPrize > 0) {
       saveScore(finalPrize);
     }
-  }, [gameState, answerStatus, currentQuestionIndex, gaveUp, saveScore, securedPrize]);
+  }, [gameState, answerStatus, currentQuestionIndex, gaveUp, saveScore]);
   
   const advanceToNextQuestion = useCallback(() => {
-    const lastPrizeTier = PRIZE_TIERS[currentQuestionIndex];
-    if (lastPrizeTier.isCheckpoint) {
-      setSecuredPrize(lastPrizeTier.amount);
-    }
-
     if (currentQuestionIndex === TOTAL_QUESTIONS - 1) {
       setGameState('game_over');
       setIsProcessing(false);
@@ -344,6 +340,11 @@ export default function GameClient() {
 
     const nextPrize = PRIZE_TIERS[currentQuestionIndex].amount;
 
+    const lastCheckpointIndex = PRIZE_TIERS.slice(0, currentQuestionIndex)
+        .map(p => p.isCheckpoint)
+        .lastIndexOf(true);
+    const prizeOnFailure = lastCheckpointIndex !== -1 ? PRIZE_TIERS[lastCheckpointIndex].amount : 0;
+
     try {
       const res = await gameShowHost({ 
         playerName: playerName || "Jogador(a)", 
@@ -351,7 +352,7 @@ export default function GameClient() {
         answer: answerKey, 
         isCorrect: isCorrect, 
         currentPrize: nextPrize, 
-        prizeOnFailure: securedPrize 
+        prizeOnFailure: prizeOnFailure 
       });
       setHostResponse(res.response);
     } catch (error) {
@@ -370,7 +371,6 @@ export default function GameClient() {
     setPassword('');
     setAuthTab('signup');
     setLeaderboard(null);
-    setSecuredPrize(0);
   };
 
   const handleUseSkip = () => {
@@ -463,20 +463,11 @@ export default function GameClient() {
             </div>
           
             {/* Prize Info Display */}
-            <div className="flex justify-around items-center w-full text-center p-3 rounded-xl bg-card/80 border-2 border-primary/50">
-                <div className="flex-1">
-                    <p className="text-sm font-bold text-primary/80 uppercase tracking-wider">VALENDO</p>
-                    <p className="font-display text-2xl md:text-3xl font-bold text-primary text-glow-primary">
-                        R$ {prizeForCurrentQuestion.toLocaleString('pt-BR')}
-                    </p>
-                </div>
-                <div className="border-l border-border h-12"></div>
-                <div className="flex-1">
-                    <p className="text-sm font-bold text-white/60 uppercase tracking-wider">GARANTIDO</p>
-                    <p className="font-display text-2xl md:text-3xl font-bold text-white/80">
-                        R$ {securedPrize.toLocaleString('pt-BR')}
-                    </p>
-                </div>
+            <div className="w-full text-center p-3 rounded-xl bg-card/80 border-2 border-primary/50">
+                <p className="text-sm font-bold text-primary/80 uppercase tracking-wider">VALENDO</p>
+                <p className="font-display text-2xl md:text-3xl font-bold text-primary text-glow-primary">
+                    R$ {prizeForCurrentQuestion.toLocaleString('pt-BR')}
+                </p>
             </div>
 
             <Card className="text-center bg-card/80 border-2 border-accent/50 rounded-xl p-4 md:p-6 min-h-[120px] flex items-center justify-center">
