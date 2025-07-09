@@ -90,15 +90,6 @@ export default function GameClient() {
     setDisabledOptions([]);
   };
 
-  const advanceToNextQuestion = useCallback(() => {
-    setCurrentQuestionIndex(prev => prev + 1);
-    setSelectedAnswer(null);
-    setAnswerStatus('unanswered');
-    setHostResponse('');
-    setDisabledOptions([]);
-    setIsProcessing(false);
-  }, []);
-
   const startGame = useCallback(async () => {
     if (!isAiConfigured || isProcessing) return;
     setGameState('playing');
@@ -290,20 +281,6 @@ export default function GameClient() {
   };
 
   useEffect(() => {
-    if (gameState !== 'playing' || quizQuestions.length === 0) return;
-
-    const lastCheckpointIndex = PRIZE_TIERS.slice(0, currentQuestionIndex)
-      .map(p => p.isCheckpoint)
-      .lastIndexOf(true);
-    const newSecuredPrize = lastCheckpointIndex !== -1 ? PRIZE_TIERS[lastCheckpointIndex].amount : 0;
-    
-    if (newSecuredPrize !== securedPrize) {
-      setSecuredPrize(newSecuredPrize);
-    }
-  }, [currentQuestionIndex, gameState, quizQuestions.length, securedPrize]);
-
-
-  useEffect(() => {
     if (gameState !== 'game_over') return;
 
     let finalPrize = 0;
@@ -335,7 +312,20 @@ export default function GameClient() {
             setGameState('game_over');
             setIsProcessing(false);
           } else {
-            advanceToNextQuestion();
+            const newIndex = currentQuestionIndex + 1;
+            setCurrentQuestionIndex(newIndex);
+            
+            const lastCheckpointIndex = PRIZE_TIERS.slice(0, newIndex)
+              .map(p => p.isCheckpoint)
+              .lastIndexOf(true);
+            const newSecuredPrize = lastCheckpointIndex !== -1 ? PRIZE_TIERS[lastCheckpointIndex].amount : 0;
+            setSecuredPrize(newSecuredPrize);
+            
+            setSelectedAnswer(null);
+            setAnswerStatus('unanswered');
+            setHostResponse('');
+            setDisabledOptions([]);
+            setIsProcessing(false);
           }
         } else if (answerStatus === 'incorrect') {
             setGameState('game_over');
@@ -344,7 +334,7 @@ export default function GameClient() {
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, [hostResponse, answerStatus, advanceToNextQuestion, currentQuestionIndex]);
+  }, [hostResponse, answerStatus, currentQuestionIndex]);
 
 
   const handleAnswer = async (answerKey: string) => {
@@ -385,7 +375,21 @@ export default function GameClient() {
   const handleUseSkip = () => {
     if (lifelines.skip > 0 && answerStatus === 'unanswered' && currentQuestionIndex < TOTAL_QUESTIONS - 1) {
       setLifelines(prev => ({ ...prev, skip: prev.skip - 1 }));
-      advanceToNextQuestion();
+
+      const newIndex = currentQuestionIndex + 1;
+      setCurrentQuestionIndex(newIndex);
+      
+      const lastCheckpointIndex = PRIZE_TIERS.slice(0, newIndex)
+        .map(p => p.isCheckpoint)
+        .lastIndexOf(true);
+      const newSecuredPrize = lastCheckpointIndex !== -1 ? PRIZE_TIERS[lastCheckpointIndex].amount : 0;
+      setSecuredPrize(newSecuredPrize);
+      
+      setSelectedAnswer(null);
+      setAnswerStatus('unanswered');
+      setHostResponse('');
+      setDisabledOptions([]);
+      
       toast({
           title: "Pergunta pulada!",
           description: "Vamos para a próxima.",
