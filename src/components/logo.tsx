@@ -35,20 +35,6 @@ export function Logo() {
           <text x="248" y="112" fontSize="55" fill="url(#gold-gradient)" fontWeight="900">QUEM SABE,</text>
           <text x="248" y="207" fontSize="110" fill="url(#gold-gradient)" fontWeight="900">GANHA!</text>
         </g>
-        
-        {/* Gold Bar at the bottom */}
-        <path 
-            d="M100 290 L120 275 L380 275 L400 290 L380 305 L120 305 Z"
-            fill="url(#gold-gradient)"
-            stroke="hsl(var(--primary-foreground))"
-            strokeWidth="1.5"
-        />
-
-        {/* Sparkle */}
-        <g fill="white">
-            <path d="M130 280 L135 275 L140 280 L135 285 Z" />
-            <path d="M125 282 L130 277 L135 282 L130 287 Z" opacity="0.7"/>
-        </g>
       </svg>
     </div>
   );
