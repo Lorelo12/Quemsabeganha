@@ -72,26 +72,31 @@ export function Logo() {
             strokeLinejoin="round"
           >
             {/* Shadow */}
-            <text x="253" y="113" fill="#000" opacity="0.5" fontSize="60">QUEM</text>
-            <text x="253" y="183" fill="#000" opacity="0.5" fontSize="60">SABE</text>
-            <text x="253" y="263" fill="#000" opacity="0.5" fontSize="80">GANHA!</text>
+            <text x="253" y="103" fill="#000" opacity="0.5" fontSize="40">QUEM SABE</text>
+            <text x="253" y="198" fill="#000" opacity="0.5" fontSize="100">GANHA!</text>
             
             {/* Main Text */}
-            <text x="250" y="110" fill="url(#gold-grad)" stroke="#613400" strokeWidth="3" fontSize="60">QUEM</text>
-            <text x="250" y="180" fill="url(#gold-grad)" stroke="#613400" strokeWidth="3" fontSize="60">SABE</text>
-            <text x="250" y="260" fill="url(#gold-grad)" stroke="#613400" strokeWidth="4" fontSize="80">GANHA!</text>
+            <text x="250" y="100" fill="url(#gold-grad)" stroke="#613400" strokeWidth="2" fontSize="40">QUEM SABE</text>
+            <text x="250" y="195" fill="url(#gold-grad)" stroke="#613400" strokeWidth="5" fontSize="100">GANHA!</text>
           </g>
           
-          {/* Gold Bar at the bottom */}
-          <g transform="translate(160 270) rotate(-8)">
-              <polygon points="0,5 180,0 185,15 5,20" fill="url(#gold-bar-top)"/>
-              <polygon points="5,20 185,15 180,35 0,40" fill="url(#gold-bar-front)"/>
-              <text 
-                  x="92.5" y="18" textAnchor="middle" dominantBaseline="middle"
-                  fontFamily="var(--font-orbitron)" fontSize="16" fontWeight="bold"
-                  fill="#8C5C0B" transform="skewY(-5)">
-                  GANHA.
-              </text>
+          {/* Gold Bar Pile */}
+          <g transform="translate(130, 240)">
+            {/* Bar 1 (bottom left) */}
+            <g transform="rotate(-10)">
+              <polygon points="0,5 180,0 185,20 5,25" fill="url(#gold-bar-top)"/>
+              <polygon points="5,25 185,20 180,40 0,45" fill="url(#gold-bar-front)"/>
+            </g>
+            {/* Bar 2 (bottom right) */}
+            <g transform="translate(80, 15) rotate(5)">
+              <polygon points="0,5 180,0 185,20 5,25" fill="url(#gold-bar-top)"/>
+              <polygon points="5,25 185,20 180,40 0,45" fill="url(#gold-bar-front)"/>
+            </g>
+             {/* Bar 3 (top) */}
+            <g transform="translate(30, -15) rotate(-5)">
+              <polygon points="0,5 200,0 205,20 5,25" fill="url(#gold-bar-top)"/>
+              <polygon points="5,25 205,20 200,40 0,45" fill="url(#gold-bar-front)"/>
+            </g>
           </g>
         </g>
       </svg>
