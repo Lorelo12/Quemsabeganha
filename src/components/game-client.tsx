@@ -300,30 +300,34 @@ export default function GameClient() {
     }
   }, [gameState, answerStatus, currentQuestionIndex, gaveUp, saveScore, securedPrize]);
   
+  const advanceToNextQuestion = useCallback(() => {
+    const lastPrizeTier = PRIZE_TIERS[currentQuestionIndex];
+    if (lastPrizeTier.isCheckpoint) {
+      setSecuredPrize(lastPrizeTier.amount);
+    }
+
+    if (currentQuestionIndex === TOTAL_QUESTIONS - 1) {
+      setGameState('game_over');
+      setIsProcessing(false);
+    } else {
+      setCurrentQuestionIndex(prev => prev + 1);
+      setSelectedAnswer(null);
+      setAnswerStatus('unanswered');
+      setHostResponse('');
+      setDisabledOptions([]);
+      setIsProcessing(false);
+    }
+  }, [currentQuestionIndex]);
+
   useEffect(() => {
-    if (!hostResponse || (answerStatus !== 'correct' && answerStatus !== 'incorrect')) return;
+    if (!hostResponse || answerStatus !== 'correct') return;
 
     const timer = setTimeout(() => {
-        if (answerStatus === 'correct') {
-          if (currentQuestionIndex === TOTAL_QUESTIONS - 1) {
-            setGameState('game_over');
-            setIsProcessing(false);
-          } else {
-            setCurrentQuestionIndex(currentQuestionIndex + 1);
-            setSelectedAnswer(null);
-            setAnswerStatus('unanswered');
-            setHostResponse('');
-            setDisabledOptions([]);
-            setIsProcessing(false);
-          }
-        } else if (answerStatus === 'incorrect') {
-            setGameState('game_over');
-            setIsProcessing(false);
-        }
+      advanceToNextQuestion();
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, [hostResponse, answerStatus, currentQuestionIndex]);
+  }, [hostResponse, answerStatus, advanceToNextQuestion]);
 
 
   const handleAnswer = async (answerKey: string) => {
@@ -334,21 +338,27 @@ export default function GameClient() {
     const isCorrect = answerKey === currentQuestion.correctAnswerKey;
     setAnswerStatus(isCorrect ? 'correct' : 'incorrect');
 
-    if (isCorrect) {
-      const currentPrizeTier = PRIZE_TIERS[currentQuestionIndex];
-      if (currentPrizeTier.isCheckpoint) {
-        setSecuredPrize(currentPrizeTier.amount);
-      }
+    if (!isCorrect) {
+        setGameState('game_over');
     }
 
     const nextPrize = PRIZE_TIERS[currentQuestionIndex].amount;
-    const prizeOnFailure = securedPrize;
 
     try {
-      const res = await gameShowHost({ playerName: playerName || "Jogador(a)", question: currentQuestion.question, answer: answerKey, isCorrect: isCorrect, currentPrize: nextPrize, prizeOnFailure: prizeOnFailure });
+      const res = await gameShowHost({ 
+        playerName: playerName || "Jogador(a)", 
+        question: currentQuestion.question, 
+        answer: answerKey, 
+        isCorrect: isCorrect, 
+        currentPrize: nextPrize, 
+        prizeOnFailure: securedPrize 
+      });
       setHostResponse(res.response);
     } catch (error) {
       setHostResponse(isCorrect ? 'Resposta certa!' : 'Resposta errada.');
+      if (!isCorrect) {
+        setIsProcessing(false);
+      }
     }
   };
 
@@ -366,11 +376,7 @@ export default function GameClient() {
   const handleUseSkip = () => {
     if (lifelines.skip > 0 && answerStatus === 'unanswered' && currentQuestionIndex < TOTAL_QUESTIONS - 1) {
       setLifelines(prev => ({ ...prev, skip: prev.skip - 1 }));
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setSelectedAnswer(null);
-      setAnswerStatus('unanswered');
-      setHostResponse('');
-      setDisabledOptions([]);
+      advanceToNextQuestion();
       
       toast({
           title: "Pergunta pulada!",
