@@ -28,7 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import { PRIZE_TIERS } from '@/lib/questions';
 import type { Question, LifelineState, LeaderboardEntry } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Loader2, Crown, Layers, Users, GraduationCap, Trophy, LogOut, ScrollText, AlertTriangle, BarChart2, Sparkles } from 'lucide-react';
+import { Loader2, Crown, Layers, Users, GraduationCap, Trophy, LogOut, ScrollText, AlertTriangle, BarChart2, Sparkles, SkipForward } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { Logo } from './logo';
 
@@ -62,6 +62,7 @@ export default function GameClient() {
   const { toast } = useToast();
 
   const [lifelines, setLifelines] = useState<LifelineState>({
+    skip: 3,
     cards: true,
     audience: true,
     experts: true,
@@ -85,9 +86,23 @@ export default function GameClient() {
   }, []);
 
   const resetLifelines = () => {
-    setLifelines({ cards: true, audience: true, experts: true });
+    setLifelines({ skip: 3, cards: true, audience: true, experts: true });
     setDisabledOptions([]);
   };
+
+  const advanceToNextQuestion = useCallback(() => {
+    if (currentQuestionIndex === TOTAL_QUESTIONS - 1) {
+        setGameState('game_over');
+        setIsProcessing(false);
+    } else {
+        setCurrentQuestionIndex(prev => prev + 1);
+        setSelectedAnswer(null);
+        setAnswerStatus('unanswered');
+        setHostResponse('');
+        setDisabledOptions([]);
+        setIsProcessing(false);
+    }
+  }, [currentQuestionIndex]);
 
   const startGame = useCallback(async () => {
     if (!isAiConfigured || isProcessing) return;
@@ -118,7 +133,7 @@ export default function GameClient() {
     } finally {
         setIsProcessing(false);
     }
-  }, [toast, isAiConfigured, isProcessing]);
+  }, [toast, isAiConfigured, isProcessing, advanceToNextQuestion]);
 
   const checkNicknameAvailability = async (nickname: string) => {
     if (!isSupabaseConfigured || !supabase) return true;
@@ -300,20 +315,6 @@ export default function GameClient() {
       saveScore(finalPrize);
     }
   }, [gameState, answerStatus, currentQuestionIndex, gaveUp, saveScore]);
-
-  const advanceToNextQuestion = useCallback(() => {
-    if (currentQuestionIndex === TOTAL_QUESTIONS - 1) {
-        setGameState('game_over');
-        setIsProcessing(false);
-    } else {
-        setCurrentQuestionIndex(prev => prev + 1);
-        setSelectedAnswer(null);
-        setAnswerStatus('unanswered');
-        setHostResponse('');
-        setDisabledOptions([]);
-        setIsProcessing(false);
-    }
-  }, [currentQuestionIndex]);
   
   useEffect(() => {
     if (!hostResponse || (answerStatus !== 'correct' && answerStatus !== 'incorrect')) return;
@@ -363,6 +364,17 @@ export default function GameClient() {
     setPassword('');
     setAuthTab('signup');
     setLeaderboard(null);
+  };
+
+  const handleUseSkip = () => {
+    if (lifelines.skip > 0 && answerStatus === 'unanswered' && currentQuestionIndex < TOTAL_QUESTIONS - 1) {
+      setLifelines(prev => ({ ...prev, skip: prev.skip - 1 }));
+      advanceToNextQuestion();
+      toast({
+          title: "Pergunta pulada!",
+          description: "Vamos para a próxima.",
+      });
+    }
   };
 
   const handleUseCards = () => {
@@ -481,6 +493,19 @@ export default function GameClient() {
                 <div className="flex justify-between items-center gap-2">
                     {/* Lifelines on the left */}
                     <div className="flex items-center gap-2">
+                      <Tooltip>
+                          <TooltipTrigger asChild>
+                              <Button onClick={handleUseSkip} disabled={lifelines.skip === 0 || !!selectedAnswer || isProcessing || currentQuestionIndex === TOTAL_QUESTIONS - 1} variant="outline" size="icon" className="border-green-400 text-green-400 hover:bg-green-400/20 hover:text-green-400 disabled:opacity-40 size-12 relative">
+                                  <SkipForward className="w-6 h-6"/>
+                                  {lifelines.skip > 0 && (
+                                      <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center border-2 border-card">
+                                          {lifelines.skip}
+                                      </span>
+                                  )}
+                              </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Pular Pergunta ({lifelines.skip} restantes)</TooltipContent>
+                      </Tooltip>
                       <Tooltip>
                         <TooltipTrigger asChild>
                            <Button onClick={handleUseExperts} disabled={!lifelines.experts || !!selectedAnswer || isProcessing} variant="outline" size="icon" className="border-secondary text-secondary hover:bg-secondary/20 hover:text-secondary disabled:opacity-40 size-12">
@@ -735,8 +760,9 @@ export default function GameClient() {
                   <div className="space-y-4 pt-4">
                       <p>O objetivo é simples: responda a 16 perguntas de conhecimentos gerais para ganhar o prêmio máximo de R$ 1.000.000!</p>
                       <div>
-                          <h3 className="font-bold text-primary mb-2">Ajudas Disponíveis (1 uso por jogo):</h3>
+                          <h3 className="font-bold text-primary mb-2">Ajudas Disponíveis (1 uso por jogo, exceto 'Pular'):</h3>
                           <ul className="space-y-1 list-disc list-inside">
+                              <li><strong className="text-green-400">Pular (3 usos):</strong> Avança para a próxima pergunta sem responder a atual.</li>
                               <li><strong className="text-secondary">Universitários:</strong> Pede a opinião de três especialistas fictícios.</li>
                               <li><strong className="text-accent">Cartas:</strong> Remove duas respostas incorretas da tela.</li>
                               <li><strong className="text-orange-400">Plateia:</strong> Mostra a porcentagem de votos da plateia para cada opção.</li>

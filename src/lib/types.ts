@@ -20,6 +20,7 @@ export interface PrizeTier {
 }
 
 export interface LifelineState {
+  skip: number;
   cards: boolean;
   audience: boolean;
   experts: boolean;
